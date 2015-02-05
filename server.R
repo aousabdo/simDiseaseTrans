@@ -3,33 +3,38 @@ library(shiny)
 shinyServer(function(input, output) {
   
   dataTable <- reactive({
+    input$goButton
+    
+    # read inputs
     N <- input$N
     n1 <- vector(mode = 'numeric', length = N)
     n2 <- vector(mode = 'numeric', length = N)
     n3 <- vector(mode = 'numeric', length = N)
     value <- vector(mode = 'numeric', length = N)
     
-    #     ELminor    <- input$ELminor
-    #     ELmoderate <- input$ELmoderate
-    #     ELhigh     <- input$ELhigh
-    #     
-    #     ELall <- c(rep(1, ELminor/100*N), rep(2, ELmoderate/100*N), rep(3, ELhigh/100*N))
-    #     ELall <- sample(ELall)
-  
+    exp.level.minor    <- input$exp.level.minor
+    exp.level.moderate <- input$exp.level.moderate
+    exp.level.high     <- input$exp.level.high
+    
+    # obtains distribution of exposure levels
+    exp.levels <- expLevels(exp.level.minor, exp.level.moderate, exp.level.high, N)
     
     for(i in 1:N){
       n1[i] <- sample(1:6, 1)
       n2[i] <- sample(1:6, 1)
       n3[i] <- sample(1:3, 1)
-      value[i] <- simDiseaseTrans(recipient = n1[i], exposer =  n2[i], exposure = n3[i])
+      #       value[i] <- simDiseaseTrans(recipient = n1[i], exposer =  n2[i], exposure = n3[i])
+      value[i] <- simDiseaseTrans(recipient = n1[i], exposer =  n2[i], exposure = exp.levels[i])
     }
     
-    simDT <- data.table("recipient" = n1, "exposer" = n2, "exposure" = n3, "recipient.new" = value)
+    #     simDT <- data.table("recipient" = n1, "exposer" = n2, "exposure" = n3, "recipient.new" = value)
+    simDT <- data.table("recipient" = n1, "exposer" = n2, "exposure" = exp.levels, "recipient.new" = value)
     return(simDT)
   })
   
-  output$distsPlot <- renderPlot({    
-    simDT <- dataTable()
+  output$distsPlot <- renderPlot({  
+    input$goButton
+    simDT <- isolate(dataTable())
     p1 <- ggplot(simDT, aes(x = as.factor(recipient))) + geom_bar(fill = "#B5DAFF") 
     p1 <- p1 + xlab("Health Status of Recipients") + ylab("Frequency") + ggtitle("Distribution of Health Status of Recipients\n")
     p1 <- p1 + theme_bw()
@@ -59,7 +64,9 @@ shinyServer(function(input, output) {
   })
   
   output$postExpPlot <- renderPlot({ 
-    simDT <- dataTable()
+    input$goButton
+    simDT <- isolate(dataTable())
+    
     p5 <- ggplot(simDT, aes(x = as.factor(recipient.new), fill = as.factor(exposure))) + geom_bar(position="dodge") 
     p5 <- p5 + facet_grid(recipient ~ exposer)
     p5 <- p5 + xlab("\nPost-Exposure Health Status of Recipients") + ylab("Frequency") 
@@ -80,7 +87,9 @@ shinyServer(function(input, output) {
   })
   
   output$dataTable <- renderDataTable({
-    simDT <- dataTable()
+    input$goButton
+    simDT <- isolate(dataTable())
+    
     simDT$exposure <- as.factor(simDT$exposure)
     levels(simDT$exposure) <- c("Minor", "Moderate", "High")
     setnames(simDT, names(simDT), 
@@ -91,7 +100,7 @@ shinyServer(function(input, output) {
   output$transMatrix <- renderTable({
     df
   })
-
+  
   output$downloadData <- downloadHandler(
     filename = function() { paste('Disease_Transmission_Simulations_',input$N, '_simPersonas_',
                                   format(Sys.time(), "%m-%d-%Y_%H-%M-%S"),'.csv', sep='') },
