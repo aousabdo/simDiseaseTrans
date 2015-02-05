@@ -18,8 +18,9 @@ shinyServer(function(input, output) {
     
     # obtains distribution of exposure levels
     exp.levels <- expLevels(exp.level.minor, exp.level.moderate, exp.level.high, N)
-     
-    n1 <- sample(1:6, N, replace = TRUE)
+    
+    #     n1 <- sample(1:6, N, replace = TRUE)
+    n1 <- c(rep(1:4, N*0.2) ,rep(5:6, N*0.1))
     n2 <- sample(n1)
     
     for(i in 1:N){
