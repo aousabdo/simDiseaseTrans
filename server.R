@@ -18,17 +18,16 @@ shinyServer(function(input, output) {
     
     # obtains distribution of exposure levels
     exp.levels <- expLevels(exp.level.minor, exp.level.moderate, exp.level.high, N)
+     
+    n1 <- sample(1:6, N, replace = TRUE)
+    n2 <- sample(n1)
     
     for(i in 1:N){
-      n1[i] <- sample(1:6, 1)
-      n2[i] <- sample(1:6, 1)
-      n3[i] <- sample(1:3, 1)
-      #       value[i] <- simDiseaseTrans(recipient = n1[i], exposer =  n2[i], exposure = n3[i])
       value[i] <- simDiseaseTrans(recipient = n1[i], exposer =  n2[i], exposure = exp.levels[i])
     }
     
-    #     simDT <- data.table("recipient" = n1, "exposer" = n2, "exposure" = n3, "recipient.new" = value)
     simDT <- data.table("recipient" = n1, "exposer" = n2, "exposure" = exp.levels, "recipient.new" = value)
+    
     return(simDT)
   })
   
