@@ -21,16 +21,13 @@ rownames(df) <- paste("Recipient HS ", rep(1:6), sep = "")
 
 
 # function to simulate the spread of the disease
-simDiseaseTrans <- function(recipient = 3, exposer = 5, exposure = 2, encounter = 3){
+simDiseaseTrans <- function(recipient = 3, exposer = 5, exposure = 2){
   # recipient and exposer take values between 1 and 6
   if(recipient < 1 | recipient > 6){stop("Recipient Health Status has to be in the range 1-6")}
   if(exposer  < 1 | exposer > 6){stop("Exposer Health Status has to be in the range 1-6")}
   
   # exposer take values between 1, minor exposure, and 3, high exposure
   if(exposure < 1 | exposure > 3){stop("Exposure level has to be in the range 1-3")}
-  
-  # number of encounters is bounded in the 1-3 range
-  if(! (1 <= encounter & encounter <= 10)){stop("Number of encounters has to be in the 1-10 range")}
   
   # read omega, likelihood of advancing to next level of health status from dataframe
   omega <- df[recipient, ((exposer-1)*3 + exposure)]
@@ -41,12 +38,6 @@ simDiseaseTrans <- function(recipient = 3, exposer = 5, exposure = 2, encounter 
   if(sample(0:100, 1) < omega) recipient.new <- recipient + 1
   else recipient.new <- recipient
   
-  #   recipient.new <- recipient
-  #   
-  #   for(i in 1:encounter){
-  #     if(sample(0:100, 1) < omega) recipient.new <- recipient + 1
-  #   }
-  
   return(recipient.new)
 }
 
@@ -55,7 +46,7 @@ expLevels <- function(l1, l2, l3, N){
   # all levels in one vector
   exp.levels <- c(rep(1, l1/100*N), rep(2, l2/100*N), rep(3, l3/100*N))
   
-  # if sum of all levels is less than a hundred then recycle to avoid error
+  # if sum of all levels is different than a hundred then recycle to avoid error
   if(sum(l1, l2, l3) < 100 | sum(l1, l2, l3) > 100){ 
     exp.levels <- sample(exp.levels, size = N, replace = TRUE)
   }
