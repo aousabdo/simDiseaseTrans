@@ -50,6 +50,19 @@ simDiseaseTrans <- function(recipient = 3, exposer = 5, exposure = 2, encounter 
   return(recipient.new)
 }
 
+# this function takes three levels of percentages and creates a random sample
+expLevels <- function(l1, l2, l3, N){
+  # all levels in one vector
+  exp.levels <- c(rep(1, l1/100*N), rep(2, l2/100*N), rep(3, l3/100*N))
+  
+  # if sum of all levels is less than a hundred then recycle to avoid error
+  if(sum(l1, l2, l3) < 100 | sum(l1, l2, l3) > 100){ 
+    exp.levels <- sample(exp.levels, size = N, replace = TRUE)
+  }
+  else exp.levels <- sample(exp.levels)
+  return(exp.levels)
+}
+
 # common theme for the ggplots
 commonTheme <- theme(axis.text.x = element_text(angle=0, hjust=1, size = 14),
                      axis.title.x = element_text(face="bold", colour="black", size=16),
