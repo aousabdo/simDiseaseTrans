@@ -13,15 +13,15 @@ library(data.table)
 source("./multiplot.R")
 
 # read disease probabilty transfer matrix and store it in a dataframe
-df           <- read.csv("disease_transmission_matrix_2.csv", header = FALSE)
+transProbMatrix           <- read.csv("disease_transmission_matrix_2.csv", header = FALSE)
 
 # assign somewhat useful column and row names for the display in the shiny app
-colnames(df) <- paste("Exposer HS ", rep(1:6, each = 3), " EL: ", rep(c(" Minor ", " Moderate ", " High"),3), sep = "")
-rownames(df) <- paste("Recipient HS ", rep(1:6), sep = "")
+colnames(transProbMatrix) <- paste("Exposer HS ", rep(1:6, each = 3), " EL: ", rep(c(" Minor ", " Moderate ", " High"),3), sep = "")
+rownames(transProbMatrix) <- paste("Recipient HS ", rep(1:6), sep = "")
 
 
 # function to simulate the spread of the disease
-simDiseaseTrans <- function(recipient = 3, exposer = 5, exposure = 2){
+simDiseaseTrans <- function(recipient = 3, exposer = 5, exposure = 2, probMatrix){
   # recipient and exposer take values between 1 and 6
   if(recipient < 1 | recipient > 6){stop("Recipient Health Status has to be in the range 1-6")}
   if(exposer  < 1 | exposer > 6){stop("Exposer Health Status has to be in the range 1-6")}
@@ -30,7 +30,7 @@ simDiseaseTrans <- function(recipient = 3, exposer = 5, exposure = 2){
   if(exposure < 1 | exposure > 3){stop("Exposure level has to be in the range 1-3")}
   
   # read omega, likelihood of advancing to next level of health status from dataframe
-  omega <- df[recipient, ((exposer-1)*3 + exposure)]
+  omega <- probMatrix[recipient, ((exposer-1)*3 + exposure)]
   
   # if omega is larger than a randomly selected number between 1 and a 100 then
   # the recipient will advance to the next level of health status (become sicker)
