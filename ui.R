@@ -9,8 +9,14 @@ shinyUI(pageWithSidebar(
   sidebarPanel(
     br(),
     wellPanel(
-      sliderInput("N","Number of Simulated Personas:", min = 100, max = 10000, value = 1000,step = 100 )
-      #     sliderInput("encounter","Number of Simulated Encounters:", min = 1, max = 10, value = 2,step = 1),
+      sliderInput("N","Number of Simulated Personas:", min = 100, max = 10000, value = 1000,step = 100 ),
+      br(),
+      sliderInput("encounter","Number of Simulated Encounters:", min = 1, max = 10, value = 3,step = 1),
+      br(),
+      checkboxInput("adjustMatrix", label = "Adjust Percentages in Matrix", value = FALSE),
+      conditionalPanel("adjustMatrix == 'TRUE'",
+                       sliderInput("adjustMatrixValue", "Subtract the following value from the Probabilty Matrix:", 
+                                   min = 5, max = 50, value = 20, step = 5))
     ),
     wellPanel(
       helpText("Exposure Level: The three sliders provided below allow the user to adjust the percentages of the three

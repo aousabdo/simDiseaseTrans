@@ -6,10 +6,12 @@ shinyServer(function(input, output) {
     input$goButton
     
     # read inputs
-    N <- input$N
-    n1 <- vector(mode = 'numeric', length = N)
-    n2 <- vector(mode = 'numeric', length = N)
-    n3 <- vector(mode = 'numeric', length = N)
+    N         <- input$N # number of personas
+    encounter <- input$encounter # number of encounters
+    n1        <- vector(mode = 'numeric', length = N)
+    n2        <- vector(mode = 'numeric', length = N) 
+    
+    simList <- list() # list to hold simulation data tables for different encounters
     value <- vector(mode = 'numeric', length = N)
     
     exp.level.minor    <- input$exp.level.minor
@@ -19,24 +21,37 @@ shinyServer(function(input, output) {
     # obtains distribution of exposure levels
     exp.levels <- expLevels(exp.level.minor, exp.level.moderate, exp.level.high, N)
     
-    #     n1 <- sample(1:6, N, replace = TRUE)
+    # distribution of simulated personas
+    # for the same poplation we'll have recipients, n1, and exposers, n2.
+    # they are the same but n2 is a resample of n1 to avoid same perosnas always
+    # meeting with itself
     n1 <- c(rep(1:4, N*0.2) ,rep(5:6, N*0.1))
     n2 <- sample(n1)
     
-    for(i in 1:N){
-      value[i] <- simDiseaseTrans(recipient = n1[i], exposer =  n2[i], exposure = exp.levels[i])
+    # for each encounter we need to obtain the health status of the reipients
+    for(j in 1:encounter){
+      for(i in 1:N){
+        value[i] <- simDiseaseTrans(recipient = n1[i], exposer =  n2[i], exposure = exp.levels[i])
+      }
+      # store into a datatable inside the list
+      simList[[j]] <- data.table("recipient" = n1, "exposer" = n2, "exposure" = exp.levels,  "recipient.new" = value)
+      # now assign the new health status of recipients to the whole population
+      n1 <- value
+      # shuffle for exposers before rerunning the loop
+      n2 <- sample(n1)
     }
     
-    simDT <- data.table("recipient" = n1, "exposer" = n2, "exposure" = exp.levels, "recipient.new" = value)
+    #     simDT <- data.table("recipient" = n1, "exposer" = n2, "exposure" = exp.levels,  "recipient.new" = value)
     
-    return(simDT)
+    return(simList)
   })
   
   output$distsPlot <- renderPlot({  
     input$goButton
-    simDT <- isolate(dataTable())
-    p1 <- ggplot(simDT, aes(x = as.factor(recipient))) + geom_bar(fill = "#B5DAFF") 
-    p1 <- p1 + xlab("Health Status of Recipients") + ylab("Frequency") + ggtitle("Distribution of Health Status of Recipients\n")
+    simDT <- isolate(dataTable()[[length(dataTable())]])
+    simDT1 <- isolate(dataTable()[[1]])
+    p1 <- ggplot(simDT1, aes(x = as.factor(recipient))) + geom_bar(fill = "#B5DAFF") 
+    p1 <- p1 + xlab("Health Status of Population") + ylab("Frequency") + ggtitle("Distribution of Health Status of Population\n")
     p1 <- p1 + theme_bw()
     p1 <- p1 + commonTheme
     
@@ -65,7 +80,7 @@ shinyServer(function(input, output) {
   
   output$postExpPlot <- renderPlot({ 
     input$goButton
-    simDT <- isolate(dataTable())
+    simDT <- isolate(dataTable()[[length(dataTable())]])
     
     p5 <- ggplot(simDT, aes(x = as.factor(recipient.new), fill = as.factor(exposure))) + geom_bar(position="dodge") 
     p5 <- p5 + facet_grid(recipient ~ exposer)
@@ -88,7 +103,7 @@ shinyServer(function(input, output) {
   
   output$dataTable <- renderDataTable({
     input$goButton
-    simDT <- isolate(dataTable())
+    simDT <- isolate(dataTable()[[length(dataTable())]])
     
     simDT$exposure <- as.factor(simDT$exposure)
     levels(simDT$exposure) <- c("Minor", "Moderate", "High")
