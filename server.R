@@ -18,8 +18,16 @@ shinyServer(function(input, output) {
     exp.level.moderate <- input$exp.level.moderate
     exp.level.high     <- input$exp.level.high
     
-    # obtains distribution of exposure levels
+    # obtain distribution of exposure levels
     exp.levels <- expLevels(exp.level.minor, exp.level.moderate, exp.level.high, N)
+    
+    # read, and adjust if prompted, the transmission probability matrix dataframe
+    if(input$adjustMatrix){
+      # subtract the new desired offset
+      transProbMatrix <- transProbMatrix-input$adjustMatrixValue
+      # P >= 0
+      transProbMatrix[transProbMatrix < 0] <- 0
+    }
     
     # distribution of simulated personas
     # for the same poplation we'll have recipients, n1, and exposers, n2.
@@ -31,17 +39,16 @@ shinyServer(function(input, output) {
     # for each encounter we need to obtain the health status of the reipients
     for(j in 1:encounter){
       for(i in 1:N){
-        value[i] <- simDiseaseTrans(recipient = n1[i], exposer =  n2[i], exposure = exp.levels[i])
+        value[i] <- simDiseaseTrans(recipient = n1[i], exposer =  n2[i], 
+                                    exposure = exp.levels[i], probMatrix = transProbMatrix)
       }
-      # store into a datatable inside the list
+      # store into datatables inside the list
       simList[[j]] <- data.table("recipient" = n1, "exposer" = n2, "exposure" = exp.levels,  "recipient.new" = value)
       # now assign the new health status of recipients to the whole population
       n1 <- value
       # shuffle for exposers before rerunning the loop
       n2 <- sample(n1)
     }
-    
-    #     simDT <- data.table("recipient" = n1, "exposer" = n2, "exposure" = exp.levels,  "recipient.new" = value)
     
     return(simList)
   })
@@ -113,7 +120,13 @@ shinyServer(function(input, output) {
   })
   
   output$transMatrix <- renderTable({
-    df
+    input$goButton
+    # read, and adjust if prompted, the transmission probability matrix dataframe
+    if(isolate(input$adjustMatrix)){
+      transProbMatrix <- transProbMatrix-input$adjustMatrixValue
+      transProbMatrix[transProbMatrix < 0] <- 0
+    }
+    transProbMatrix
   })
   
   output$downloadData <- downloadHandler(
