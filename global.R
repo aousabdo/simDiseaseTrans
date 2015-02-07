@@ -22,12 +22,12 @@ rownames(transProbMatrix) <- paste("Recipient HS ", rep(1:6), sep = "")
 
 # function to simulate the spread of the disease
 simDiseaseTrans <- function(recipient = 3, exposer = 5, exposure = 2, probMatrix){
-  # recipient and exposer take values between 1 and 6
-  if(recipient < 1 | recipient > 6){stop("Recipient Health Status has to be in the range 1-6")}
-  if(exposer  < 1 | exposer > 6){stop("Exposer Health Status has to be in the range 1-6")}
-  
-  # exposer take values between 1, minor exposure, and 3, high exposure
-  if(exposure < 1 | exposure > 3){stop("Exposure level has to be in the range 1-3")}
+#   # recipient and exposer take values between 1 and 6
+#   if(recipient < 1 | recipient > 6){stop("Recipient Health Status has to be in the range 1-6")}
+#   if(exposer  < 1 | exposer > 6){stop("Exposer Health Status has to be in the range 1-6")}
+#   
+#   # exposer take values between 1, minor exposure, and 3, high exposure
+#   if(exposure < 1 | exposure > 3){stop("Exposure level has to be in the range 1-3")}
   
   # read omega, likelihood of advancing to next level of health status from dataframe
   omega <- probMatrix[recipient, ((exposer-1)*3 + exposure)]
@@ -37,6 +37,31 @@ simDiseaseTrans <- function(recipient = 3, exposer = 5, exposure = 2, probMatrix
   # if not then the recipient stays at the same health status level
   if(sample(0:100, 1) < omega) recipient.new <- recipient + 1
   else recipient.new <- recipient
+  
+  return(recipient.new)
+}
+
+# function to simulate the spread of the disease
+simDiseaseTransBi <- function(recipient = 3, exposer = 5, exposure = 2, probMatrix){
+  # recipient and exposer take values between 1 and 6
+  if(recipient < 1 | recipient > 6){stop("Recipient Health Status has to be in the range 1-6")}
+  if(exposer  < 1 | exposer > 6){stop("Exposer Health Status has to be in the range 1-6")}
+  
+  # exposer take values between 1, minor exposure, and 3, high exposure
+  if(exposure < 1 | exposure > 3){stop("Exposure level has to be in the range 1-3")}
+  
+  # read omega, likelihood of advancing to next level of health status from dataframe
+  omega  <- probMatrix[recipient, ((exposer-1)*3 + exposure)]
+  omega2 <- probMatrix[exposer, ((recipient-1)*3 + exposure)]
+  
+  # if omega is larger than a randomly selected number between 1 and a 100 then
+  # the recipient will advance to the next level of health status (become sicker)
+  # if not then the recipient stays at the same health status level
+  if(sample(0:100, 1) < omega) recipient.new <- recipient + 1
+  else recipient.new <- recipient
+
+  if(sample(0:100, 1) < omega2) exposer.new <- exposer + 1
+  else exposer.new <- exposer
   
   return(recipient.new)
 }
