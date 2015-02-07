@@ -33,8 +33,12 @@ shinyServer(function(input, output) {
     # for the same poplation we'll have recipients, n1, and exposers, n2.
     # they are the same but n2 is a resample of n1 to avoid same perosnas always
     # meeting with itself
-    n1 <- c(rep(1:4, N*0.2) ,rep(5:6, N*0.1))
-    n2 <- sample(n1)
+    population <- c(rep(1:4, N*0.2) ,rep(5:6, N*0.1))
+    # randomize the population and store it in n1 (recipients)
+    n1 <- sample(population)
+    # shift the vector by 1 element and store in new object (exposers)
+    # this way a persona can't meet with himself
+    n2 <- c(n1[length(n1)], n1[1:(length(n1)-1)])
     
     # for each encounter we need to obtain the health status of the reipients
     for(j in 1:encounter){
