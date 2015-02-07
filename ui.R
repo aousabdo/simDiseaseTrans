@@ -17,7 +17,7 @@ shinyUI(pageWithSidebar(
       conditionalPanel("input.adjustMatrix == true",
                        sliderInput("adjustMatrixValue", "Subtract the following value from non-zero 
                                    values in the Transmission Probabilty Matrix:", 
-                                   min = 5, max = 50, value = 20, step = 5))
+                                   min = 5, max = 80, value = 20, step = 5))
     ),
     wellPanel(
       helpText("Exposure Level: The three sliders provided below allow the user to adjust the percentages of the three
