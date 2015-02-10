@@ -8,6 +8,7 @@
 # initiate libraries
 library(ggplot2)
 library(data.table)
+library(gridExtra)
 
 # source needed R scripts
 source("./multiplot.R")
@@ -43,13 +44,6 @@ simDiseaseTrans <- function(recipient = 3, exposer = 5, exposure = 2, probMatrix
 
 # function to simulate the spread of the disease
 simDiseaseTransBi <- function(recipient = 3, exposer = 5, exposure = 2, probMatrix){
-  # recipient and exposer take values between 1 and 6
-  if(recipient < 1 | recipient > 6){stop("Recipient Health Status has to be in the range 1-6")}
-  if(exposer  < 1 | exposer > 6){stop("Exposer Health Status has to be in the range 1-6")}
-  
-  # exposer take values between 1, minor exposure, and 3, high exposure
-  if(exposure < 1 | exposure > 3){stop("Exposure level has to be in the range 1-3")}
-  
   # read omega, likelihood of advancing to next level of health status from dataframe
   omega  <- probMatrix[recipient, ((exposer-1)*3 + exposure)]
   omega2 <- probMatrix[exposer, ((recipient-1)*3 + exposure)]
@@ -63,7 +57,7 @@ simDiseaseTransBi <- function(recipient = 3, exposer = 5, exposure = 2, probMatr
   if(sample(0:100, 1) < omega2) exposer.new <- exposer + 1
   else exposer.new <- exposer
   
-  return(recipient.new)
+  return(list(recipient.new, exposer.new))
 }
 
 # this function takes three levels of percentages and creates a random sample
@@ -77,6 +71,11 @@ expLevels <- function(l1, l2, l3, N){
   }
   else exp.levels <- sample(exp.levels)
   return(exp.levels)
+}
+
+# function to merge two vectors interchangebly
+interchange2V <- function(v1, v2){
+  as.vector(rbind(v1, v2))
 }
 
 # common theme for the ggplots
