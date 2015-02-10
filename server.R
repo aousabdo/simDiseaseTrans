@@ -3,23 +3,27 @@ library(shiny)
 shinyServer(function(input, output) {
   
   dataTable <- reactive({
+    # Update only when update button is clicked 
     input$goButton
     
     # read inputs
     N         <- input$N # number of personas
     encounter <- input$encounter # number of encounters
-    n1        <- vector(mode = 'numeric', length = N)
-    n2        <- vector(mode = 'numeric', length = N) 
+    I         <- 2 # divide population in two grpus
+    n1        <- vector(mode = 'numeric', length = N/2)
+    n2        <- vector(mode = 'numeric', length = N/2) 
     
     simList <- list() # list to hold simulation data tables for different encounters
-    value <- vector(mode = 'numeric', length = N)
+    value  <- vector(mode = 'numeric', length = N/2)
+    value2 <- vector(mode = 'numeric', length = N/2)
     
+    # values of exposure levels
     exp.level.minor    <- input$exp.level.minor
     exp.level.moderate <- input$exp.level.moderate
     exp.level.high     <- input$exp.level.high
     
     # obtain distribution of exposure levels
-    exp.levels <- expLevels(exp.level.minor, exp.level.moderate, exp.level.high, N)
+    exp.levels <- expLevels(exp.level.minor, exp.level.moderate, exp.level.high, N/2)
     
     # read, and adjust if prompted, the transmission probability matrix dataframe
     if(input$adjustMatrix){
@@ -29,35 +33,39 @@ shinyServer(function(input, output) {
       transProbMatrix[transProbMatrix < 0] <- 0
     }
     
-    # distribution of simulated personas
-    # for the same poplation we'll have recipients, n1, and exposers, n2.
-    # they are the same but n2 is a resample of n1 to avoid same perosnas always
-    # meeting with itself
+    # simulate the population
     population <- c(rep(1:4, N*0.2) ,rep(5:6, N*0.1))
-    # randomize the population and store it in n1 (recipients)
-    n1 <- sample(population)
-    # shift the vector by 1 element and store in new object (exposers)
-    # this way a persona can't meet with himself
-    n2 <- c(n1[length(n1)], n1[1:(length(n1)-1)])
+    # randomize the population  
+    population <- sample(population)
+    # split it in two halves
+    n1 <- population[1:(length(population)/2)]
+    n2 <- population[(length(population)/2+1):length(population)]
     
-    # for each encounter we need to obtain the health status of the reipients
+    # after splitting the population in two halves, these two halves will interact with each other throught the 
+    # transmission matrix. For each encounter each pair will interact with each other only once. The two sides of 
+    # the interaction pair might be affected so we need to calculate the post-exposure status for each member of the pair
     for(j in 1:encounter){
-      for(i in 1:N){
-        value[i] <- simDiseaseTrans(recipient = n1[i], exposer =  n2[i], 
-                                    exposure = exp.levels[i], probMatrix = transProbMatrix)
+      for(i in 1:(N/2)){
+        # what is the new health status of the first persona in this pair
+        value[i] <- simDiseaseTrans(recipient = n1[i], exposer =  n2[i], exposure = exp.levels[i], probMatrix = transProbMatrix)
+        # what is the new health status of the second persona in this pair
+        value2[i] <- simDiseaseTrans(recipient = n2[i], exposer =  n1[i], exposure = exp.levels[i], probMatrix = transProbMatrix)
       }
-      # store into datatables inside the list
-      simList[[j]] <- data.table("recipient" = n1, "exposer" = n2, "exposure" = exp.levels,  "recipient.new" = value)
-      # now assign the new health status of recipients to the whole population
-      n1 <- value
-      # shuffle for exposers before rerunning the loop
-      n2 <- sample(n1)
+      # for each encounter store the data table in the list
+      simList[[j]] <- data.table("recipient" = interchange2V(n1, n2), "exposer" = interchange2V(n2, n1), 
+                                 "exposure" = interchange2V(exp.levels, exp.levels), "recipient.new" = interchange2V(value, value2))
+      
+      # update the population with the new health status
+      population <- sample(c(value, value2))
+      # split it in two halves
+      n1 <- population[1:(length(population)/2)]
+      n2 <- population[(length(population)/2+1):length(population)]
     }
-    
     return(simList)
   })
   
   output$distsPlot <- renderPlot({  
+    # Update only when update button is clicked
     input$goButton
     simDT <- isolate(dataTable()[[length(dataTable())]])
     simDT1 <- isolate(dataTable()[[1]])
@@ -81,15 +89,17 @@ shinyServer(function(input, output) {
     p3 <- p3 + commonTheme
     
     p4 <- ggplot(simDT, aes(x = as.factor(recipient.new))) + geom_bar(fill = "#0000FF") 
-    p4 <- p4 + xlab("Health Status of Recipients Post Exposure") + 
-      ylab("Frequency") + ggtitle("Distribution of Health Status of Recipients\n Post Exposure")
+    p4 <- p4 + xlab("Health Status of Population Post Exposure") + 
+      ylab("Frequency") + ggtitle("Distribution of Health Status of Population\n Post Exposure")
     p4 <- p4 + theme_bw()
     p4 <- p4 + commonTheme
     
-    multiplot(p1, p3, p2, p4, cols = 2)
+    #     multiplot(p1, p3, p2, p4, cols = 2)
+    grid.arrange(p1, arrangeGrob(p3, p4, ncol = 2), ncol=1)  
   })
   
   output$postExpPlot <- renderPlot({ 
+    # Update only when update button is clicked
     input$goButton
     simDT <- isolate(dataTable()[[length(dataTable())]])
     
@@ -113,6 +123,7 @@ shinyServer(function(input, output) {
   })
   
   output$dataTable <- renderDataTable({
+    # Update only when update button is clicked
     input$goButton
     simDT <- isolate(dataTable()[[length(dataTable())]])
     
@@ -124,6 +135,7 @@ shinyServer(function(input, output) {
   })
   
   output$transMatrix <- renderTable({
+    # Update only when update button is clicked
     input$goButton
     # read, and adjust if prompted, the transmission probability matrix dataframe
     if(isolate(input$adjustMatrix)){
