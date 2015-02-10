@@ -78,6 +78,8 @@ interchange2V <- function(v1, v2){
   as.vector(rbind(v1, v2))
 }
 
+Age <- c(sample(10:20, 0.25*N), sample(21:60, 0.55*N), sample(61:81, 0.2*N))
+
 # common theme for the ggplots
 commonTheme <- theme(axis.text.x = element_text(angle=0, hjust=1, size = 14),
                      axis.title.x = element_text(face="bold", colour="black", size=16),
