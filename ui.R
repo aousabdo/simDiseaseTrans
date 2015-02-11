@@ -13,6 +13,8 @@ shinyUI(pageWithSidebar(
       br(),
       sliderInput("encounter","Number of Simulated Encounters:", min = 1, max = 20, value = 3, step = 1),
       br(),
+      sliderInput("encounter_ratio","Percentage of Population having N Encounters:", min = 10, max = 100, value = 50, step = 10),
+      br(),
       checkboxInput("adjustMatrix", label = "Adjust Percentages in Matrix", value = FALSE),
       conditionalPanel("input.adjustMatrix == true",
                        sliderInput("adjustMatrixValue", "Subtract the following value from non-zero 

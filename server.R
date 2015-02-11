@@ -22,6 +22,10 @@ shinyServer(function(input, output) {
     exp.level.moderate <- input$exp.level.moderate
     exp.level.high     <- input$exp.level.high
     
+    # percentage of population having selected encounters
+    p <- input$encounter_ratio/100
+    encounter.occur <- c(rep(0, p*N/2), rep(1, (1-p)*N/2))
+    
     # obtain distribution of exposure levels
     exp.levels <- expLevels(exp.level.minor, exp.level.moderate, exp.level.high, N/2)
     
