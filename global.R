@@ -10,9 +10,6 @@ library(ggplot2)
 library(data.table)
 library(gridExtra)
 
-# source needed R scripts
-source("./multiplot.R")
-
 # read disease probabilty transfer matrix and store it in a dataframe
 transProbMatrix           <- read.csv("disease_transmission_matrix_2.csv", header = FALSE)
 
@@ -23,12 +20,12 @@ rownames(transProbMatrix) <- paste("Recipient HS ", rep(1:6), sep = "")
 
 # function to simulate the spread of the disease
 simDiseaseTrans <- function(recipient = 3, exposer = 5, exposure = 2, probMatrix){
-#   # recipient and exposer take values between 1 and 6
-#   if(recipient < 1 | recipient > 6){stop("Recipient Health Status has to be in the range 1-6")}
-#   if(exposer  < 1 | exposer > 6){stop("Exposer Health Status has to be in the range 1-6")}
-#   
-#   # exposer take values between 1, minor exposure, and 3, high exposure
-#   if(exposure < 1 | exposure > 3){stop("Exposure level has to be in the range 1-3")}
+  # recipient and exposer take values between 1 and 6
+  if(recipient < 1 | recipient > 6){stop("Recipient Health Status has to be in the range 1-6")}
+  if(exposer  < 1 | exposer > 6){stop("Exposer Health Status has to be in the range 1-6")}
+  
+  # exposer take values between 1, minor exposure, and 3, high exposure
+  if(exposure < 1 | exposure > 3){stop("Exposure level has to be in the range 1-3")}
   
   # read omega, likelihood of advancing to next level of health status from dataframe
   omega <- probMatrix[recipient, ((exposer-1)*3 + exposure)]
@@ -36,29 +33,30 @@ simDiseaseTrans <- function(recipient = 3, exposer = 5, exposure = 2, probMatrix
   # if omega is larger than a randomly selected number between 1 and a 100 then
   # the recipient will advance to the next level of health status (become sicker)
   # if not then the recipient stays at the same health status level
-  if(sample(0:100, 1) < omega) recipient.new <- recipient + 1
+  if(sample(0:100, 1) <= omega) recipient.new <- recipient + 1
   else recipient.new <- recipient
   
   return(recipient.new)
 }
 
-# function to simulate the spread of the disease
-simDiseaseTransBi <- function(recipient = 3, exposer = 5, exposure = 2, probMatrix){
-  # read omega, likelihood of advancing to next level of health status from dataframe
-  omega  <- probMatrix[recipient, ((exposer-1)*3 + exposure)]
-  omega2 <- probMatrix[exposer, ((recipient-1)*3 + exposure)]
-  
-  # if omega is larger than a randomly selected number between 1 and a 100 then
-  # the recipient will advance to the next level of health status (become sicker)
-  # if not then the recipient stays at the same health status level
-  if(sample(0:100, 1) < omega) recipient.new <- recipient + 1
-  else recipient.new <- recipient
 
-  if(sample(0:100, 1) < omega2) exposer.new <- exposer + 1
-  else exposer.new <- exposer
-  
-  return(list(recipient.new, exposer.new))
-}
+# # function to simulate the spread of the disease bidirectional. NOT USED YET
+# simDiseaseTransBi <- function(recipient = 3, exposer = 5, exposure = 2, probMatrix){
+#   # read omega, likelihood of advancing to next level of health status from dataframe
+#   omega  <- probMatrix[recipient, ((exposer-1)*3 + exposure)]
+#   omega2 <- probMatrix[exposer, ((recipient-1)*3 + exposure)]
+#   
+#   # if omega is larger than a randomly selected number between 1 and a 100 then
+#   # the recipient will advance to the next level of health status (become sicker)
+#   # if not then the recipient stays at the same health status level
+#   if(sample(0:100, 1) < omega) recipient.new <- recipient + 1
+#   else recipient.new <- recipient
+#   
+#   if(sample(0:100, 1) < omega2) exposer.new <- exposer + 1
+#   else exposer.new <- exposer
+#   
+#   return(list(recipient.new, exposer.new))
+# }
 
 # this function takes three levels of percentages and creates a random sample
 expLevels <- function(l1, l2, l3, N){
