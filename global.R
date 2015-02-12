@@ -33,7 +33,7 @@ simDiseaseTrans <- function(recipient = 3, exposer = 5, exposure = 2, probMatrix
   # if omega is larger than a randomly selected number between 1 and a 100 then
   # the recipient will advance to the next level of health status (become sicker)
   # if not then the recipient stays at the same health status level
-  if(sample(0:100, 1) <= omega) recipient.new <- recipient + 1
+  if(sample(1:100, 1) <= omega) recipient.new <- recipient + 1
   else recipient.new <- recipient
   
   return(recipient.new)
@@ -62,13 +62,15 @@ simDiseaseTrans <- function(recipient = 3, exposer = 5, exposure = 2, probMatrix
 expLevels <- function(l1, l2, l3, N){
   # all levels in one vector
   exp.levels <- c(rep(1, l1/100*N), rep(2, l2/100*N), rep(3, l3/100*N))
+  # for odd N/2 we need to add the last item to the vector, defaulting this to 2
+  if(length(exp.levels) < N) exp.levels[N] <- 2
   
-  # if sum of all levels is different than a hundred then recycle to avoid error
+  # if sum of all levels is different than a hundred then spit out an error
   if(sum(l1, l2, l3) < 100 | sum(l1, l2, l3) > 100){ 
-    exp.levels <- sample(exp.levels, size = N, replace = TRUE)
+    stop("Percentages of exposure levels have to add up to a 100")
   }
-  else exp.levels <- sample(exp.levels)
-  return(exp.levels)
+
+  return(sample(exp.levels))
 }
 
 # function to merge two vectors interchangebly
