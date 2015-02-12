@@ -23,9 +23,11 @@ shinyServer(function(input, output) {
     exp.level.high     <- input$exp.level.high
     
     # percentage of population having selected encounters
-    p <- input$encounter_ratio/100
-    encounter.occur <- c(rep(0, p*N/2), rep(1, (1-p)*N/2))
-    
+    if(encounter == 1){encounter.occur <- rep(0, N/2)}
+    else{
+      p <- input$encounter_ratio/100
+      encounter.occur <- c(rep(0, p*N/2), rep(1, (1-p)*N/2))
+    }
     # obtain distribution of exposure levels
     exp.levels <- expLevels(exp.level.minor, exp.level.moderate, exp.level.high, N/2)
     
@@ -33,7 +35,7 @@ shinyServer(function(input, output) {
     if(input$adjustMatrix){
       # subtract the new desired offset
       transProbMatrix <- transProbMatrix-input$adjustMatrixValue
-      # P >= 0
+      # Probability has be greater than zero
       transProbMatrix[transProbMatrix < 0] <- 0
     }
     
@@ -50,10 +52,16 @@ shinyServer(function(input, output) {
     # the interaction pair might be affected so we need to calculate the post-exposure status for each member of the pair
     for(j in 1:encounter){
       for(i in 1:(N/2)){
-        # what is the new health status of the first persona in this pair
-        value[i] <- simDiseaseTrans(recipient = n1[i], exposer =  n2[i], exposure = exp.levels[i], probMatrix = transProbMatrix)
-        # what is the new health status of the second persona in this pair
-        value2[i] <- simDiseaseTrans(recipient = n2[i], exposer =  n1[i], exposure = exp.levels[i], probMatrix = transProbMatrix)
+        if(!encounter.occur[i]){
+          # what is the new health status of the first persona in this pair
+          value[i]  <- simDiseaseTrans(recipient = n1[i], exposer =  n2[i], exposure = exp.levels[i], probMatrix = transProbMatrix)
+          # what is the new health status of the second persona in this pair
+          value2[i] <- simDiseaseTrans(recipient = n2[i], exposer =  n1[i], exposure = exp.levels[i], probMatrix = transProbMatrix)
+        }
+        else{
+          value[i]  <- n1[i]
+          value2[i] <- n2[i] 
+        }
       }
       # for each encounter store the data table in the list
       simList[[j]] <- data.table("recipient" = interchange2V(n1, n2), "exposer" = interchange2V(n2, n1), 
