@@ -9,20 +9,20 @@ shinyServer(function(input, output) {
     # read inputs
     N         <- input$N # number of personas
     encounter <- input$encounter # number of encounters
-    I         <- 2 # divide population in two grpus
-    n1        <- vector(mode = 'numeric', length = N/2)
-    n2        <- vector(mode = 'numeric', length = N/2) 
+    n1        <- vector(mode = 'numeric', length = N/2) # vector containing the first half of the population
+    n2        <- vector(mode = 'numeric', length = N/2) # vector containing the second half of the population
     
     simList <- list() # list to hold simulation data tables for different encounters
-    value  <- vector(mode = 'numeric', length = N/2)
-    value2 <- vector(mode = 'numeric', length = N/2)
+    n1PostExp  <- vector(mode = 'numeric', length = N/2) # vector to store post-exposure health status of first half of population
+    n2PostExp <- vector(mode = 'numeric', length = N/2) # vector to store post-exposure health status of second half of population
     
-    # values of exposure levels
+    # n1PostExps of exposure levels
     exp.level.minor    <- input$exp.level.minor
     exp.level.moderate <- input$exp.level.moderate
     exp.level.high     <- input$exp.level.high
     
     # percentage of population having selected encounters
+    # if only one encounter is selected then the whole population will experience one encounter 
     if(encounter == 1){encounter.occur <- rep(0, N/2)}
     else{
       p <- input$encounter_ratio/100
@@ -34,7 +34,7 @@ shinyServer(function(input, output) {
     # read, and adjust if prompted, the transmission probability matrix dataframe
     if(input$adjustMatrix){
       # subtract the new desired offset
-      transProbMatrix <- transProbMatrix-input$adjustMatrixValue
+      transProbMatrix <- transProbMatrix-input$adjustMatrixn1PostExp
       # Probability has be greater than zero
       transProbMatrix[transProbMatrix < 0] <- 0
     }
@@ -54,21 +54,21 @@ shinyServer(function(input, output) {
       for(i in 1:(N/2)){
         if(!encounter.occur[i]){
           # what is the new health status of the first persona in this pair
-          value[i]  <- simDiseaseTrans(recipient = n1[i], exposer =  n2[i], exposure = exp.levels[i], probMatrix = transProbMatrix)
+          n1PostExp[i]  <- simDiseaseTrans(recipient = n1[i], exposer =  n2[i], exposure = exp.levels[i], probMatrix = transProbMatrix)
           # what is the new health status of the second persona in this pair
-          value2[i] <- simDiseaseTrans(recipient = n2[i], exposer =  n1[i], exposure = exp.levels[i], probMatrix = transProbMatrix)
+          n2PostExp[i] <- simDiseaseTrans(recipient = n2[i], exposer =  n1[i], exposure = exp.levels[i], probMatrix = transProbMatrix)
         }
         else{
-          value[i]  <- n1[i]
-          value2[i] <- n2[i] 
+          n1PostExp[i]  <- n1[i]
+          n2PostExp[i] <- n2[i] 
         }
       }
       # for each encounter store the data table in the list
       simList[[j]] <- data.table("recipient" = interchange2V(n1, n2), "exposer" = interchange2V(n2, n1), 
-                                 "exposure" = interchange2V(exp.levels, exp.levels), "recipient.new" = interchange2V(value, value2))
+                                 "exposure" = interchange2V(exp.levels, exp.levels), "recipient.new" = interchange2V(n1PostExp, n2PostExp))
       
       # update the population with the new health status
-      population <- sample(c(value, value2))
+      population <- sample(c(n1PostExp, n2PostExp))
       # split it in two halves
       n1 <- population[1:(length(population)/2)]
       n2 <- population[(length(population)/2+1):length(population)]
@@ -76,6 +76,7 @@ shinyServer(function(input, output) {
     return(simList)
   })
   
+  # now make some plots
   output$distsPlot <- renderPlot({  
     # Update only when update button is clicked
     input$goButton

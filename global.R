@@ -1,4 +1,4 @@
-# function to simulate transmission of disease for HPs HIMSS App
+# Helper file for the simulation of the  transmission of disease for HPs HIMSS App
 # Author: Dr. Alex Abdo <alex.abdo@hp.com>
 # Feb. 2 2015
 
@@ -58,7 +58,8 @@ simDiseaseTrans <- function(recipient = 3, exposer = 5, exposure = 2, probMatrix
 #   return(list(recipient.new, exposer.new))
 # }
 
-# this function takes three levels of percentages and creates a random sample
+# this function takes three levels of percentages and creates a random sample of a given length 
+# using these percentages
 expLevels <- function(l1, l2, l3, N){
   # all levels in one vector
   exp.levels <- c(rep(1, l1/100*N), rep(2, l2/100*N), rep(3, l3/100*N))
@@ -69,7 +70,6 @@ expLevels <- function(l1, l2, l3, N){
   if(sum(l1, l2, l3) < 100 | sum(l1, l2, l3) > 100){ 
     stop("Percentages of exposure levels have to add up to a 100")
   }
-
   return(sample(exp.levels))
 }
 
