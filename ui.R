@@ -9,11 +9,12 @@ shinyUI(pageWithSidebar(
   sidebarPanel(
     br(),
     wellPanel(
-      sliderInput("N","Number of Simulated Personas:", min = 100, max = 1000, value = 150, step = 10),
+      sliderInput("N","Number of Simulated Personas:", min = 100, max = 1000, value = 150, step = 20),
       br(),
       sliderInput("encounter","Number of Simulated Encounters:", min = 1, max = 20, value = 3, step = 1),
       br(),
-      sliderInput("encounter_ratio","Percentage of Population having N Encounters:", min = 10, max = 100, value = 50, step = 10),
+      sliderInput("encounter_ratio","Percentage of Population having N Encounters 
+                  (defaults to a 100 when selected number of encounters is 1): ", min = 10, max = 100, value = 50, step = 10),
       br(),
       checkboxInput("adjustMatrix", label = "Adjust Percentages in Matrix", value = FALSE),
       conditionalPanel("input.adjustMatrix == true",
@@ -25,7 +26,7 @@ shinyUI(pageWithSidebar(
       helpText("Exposure Level: The three sliders provided below allow the user to adjust the percentages of the three
                different levels of exposure."),
       helpText(HTML("<p><font color=\"red\"> <b>Please note that percentages selected have to add up to a 100.</b></font></p>")),
-      sliderInput("exp.level.minor", "% of Minor exposure level"      , min = 10, max = 80, value = 31, step = 1),
+      sliderInput("exp.level.minor", "% of Minor exposure level"      , min = 10, max = 80, value = 30, step = 1),
       sliderInput("exp.level.moderate", "% of Moderate exposure level", min = 10, max = 80, value = 40, step = 1),
       sliderInput("exp.level.high", "% of High exposure level"        , min = 10, max = 80, value = 30, step = 1)
     ),
