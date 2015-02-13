@@ -44,29 +44,46 @@ shinyServer(function(input, output) {
     # randomize the population  
     population <- sample(population)
     # split it in two halves
-    n1 <- population[1:(length(population)/2)]
-    n2 <- population[(length(population)/2+1):length(population)]
+    #     n1 <- population[1:(length(population)/2)]
+    #     n2 <- population[(length(population)/2+1):length(population)]
     
+    pop2 <- cbind(population, homeState)
+    pop2 <- as.data.frame(pop2)
+    n1 <- pop2[1:(nrow(pop2)/2),]
+    n2 <- pop2[(nrow(pop2)/2+1):nrow(pop2),]
+     
     # after splitting the population in two halves, these two halves will interact with each other throught the 
     # transmission matrix. For each encounter each pair will interact with each other only once. The two sides of 
     # the interaction pair might be affected so we need to calculate the post-exposure status for each member of the pair
     for(j in 1:encounter){
       for(i in 1:(N/2)){
         if(!encounter.occur[i]){
+          #           # what is the new health status of the first persona in this pair
+          #           n1PostExp[i]  <- simDiseaseTrans(recipient = n1[i], exposer =  n2[i], exposure = exp.levels[i], probMatrix = transProbMatrix)
+          #           # what is the new health status of the second persona in this pair
+          #           n2PostExp[i] <- simDiseaseTrans(recipient = n2[i], exposer =  n1[i], exposure = exp.levels[i], probMatrix = transProbMatrix)
           # what is the new health status of the first persona in this pair
-          n1PostExp[i]  <- simDiseaseTrans(recipient = n1[i], exposer =  n2[i], exposure = exp.levels[i], probMatrix = transProbMatrix)
+          n1PostExp[i]  <- simDiseaseTrans(recipient = n1[i,1], exposer =  n2[[i, 1]], 
+                                           exposure = exp.levels[i], homeState = n1[[i, 2]] ,probMatrix = transProbMatrix)
           # what is the new health status of the second persona in this pair
-          n2PostExp[i] <- simDiseaseTrans(recipient = n2[i], exposer =  n1[i], exposure = exp.levels[i], probMatrix = transProbMatrix)
+          n2PostExp[i] <- simDiseaseTrans(recipient = n2[[i, 1]], exposer =  n1[[i, 1]], 
+                                          exposure = exp.levels[i], homeState = n2[[i, 2]], probMatrix = transProbMatrix)
         }
         else{
-          n1PostExp[i]  <- n1[i]
-          n2PostExp[i] <- n2[i] 
+          #           n1PostExp[i]  <- n1[i]
+          #           n2PostExp[i]  <- n2[i] 
+          n1PostExp[i] <- n1[[i, 1]]
+          n2PostExp[i] <- n2[[i, 1]]
         }
       }
       # for each encounter store the data table in the list
-      simList[[j]] <- data.table("recipient" = interchange2V(n1, n2), "exposer" = interchange2V(n2, n1), 
-                                 "exposure" = interchange2V(exp.levels, exp.levels), "recipient.new" = interchange2V(n1PostExp, n2PostExp))
+      #       simList[[j]] <- data.table("recipient" = interchange2V(n1, n2), "exposer" = interchange2V(n2, n1), 
+      #                                  "exposure" = interchange2V(exp.levels, exp.levels), "recipient.new" = interchange2V(n1PostExp, n2PostExp))
       
+      simList[[j]] <- data.table("recipient" = interchange2V(n1[, 1], n2[, 1]), "exposer" = interchange2V(n2[, 1], n1[, 1]), 
+                                 "exposure" = interchange2V(exp.levels, exp.levels), 
+                                 "recipient.new" = interchange2V(n1PostExp, n2PostExp))#,
+      #                                  "home State" = interchange2V(n1[, 2], n2[, 2]))
       # update the population with the new health status
       population <- sample(c(n1PostExp, n2PostExp))
       # split it in two halves
