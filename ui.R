@@ -47,6 +47,8 @@ shinyUI(pageWithSidebar(
       tabPanel("About", includeMarkdown("About.md")),
       tabPanel("Distributions of Personas and Exposure Levels", plotOutput("distsPlot", width = 1100, height=850)), 
       tabPanel("Post-Exposure Status of Recipients", plotOutput("postExpPlot", width = 1100, height=850)),
+      tabPanel("Simulated Population", dataTableOutput("population")),
+      tabPanel("Simulated Interactions", dataTableOutput("dataTable2")),
       tabPanel("Simulated Data (Table)", dataTableOutput("dataTable")),
       tabPanel("Transmission Probability Matrix", tableOutput("transMatrix"))
     )
