@@ -11,7 +11,7 @@ library(data.table)
 library(gridExtra)
 
 # read disease probabilty transfer matrix and store it in a dataframe
-transProbMatrix           <- read.csv("disease_transmission_matrix_2.csv", header = FALSE)
+transProbMatrix  <- read.csv("disease_transmission_matrix_2.csv", header = FALSE)
 
 # assign somewhat useful column and row names for the display in the shiny app
 colnames(transProbMatrix) <- paste("Exposer HS ", rep(1:6, each = 3), " EL: ", rep(c(" Minor ", " Moderate ", " High"),3), sep = "")
@@ -29,7 +29,7 @@ simDiseaseTrans <- function(recipient = 3, exposer = 5, exposure = 2, homeState 
   
   # read omega, likelihood of advancing to next level of health status from dataframe
   omega <- probMatrix[recipient, ((exposer-1)*3 + exposure)]
-  omega <- omega + homeStateWeight[[homeState, 2]]
+  #   omega <- omega + homeStateWeight[[homeState, 2]]
   
   # if omega is larger than a randomly selected number between 1 and a 100 then
   # the recipient will advance to the next level of health status (become sicker)
@@ -37,26 +37,46 @@ simDiseaseTrans <- function(recipient = 3, exposer = 5, exposure = 2, homeState 
   if(sample(1:100, 1) <= omega) recipient.new <- recipient + 1
   else recipient.new <- recipient
   
+  if(recipient.new >6 ) recipient.new = 6
   return(recipient.new)
 }
 
-# # function to simulate the spread of the disease bidirectional. NOT USED YET
-# simDiseaseTransBi <- function(recipient = 3, exposer = 5, exposure = 2, probMatrix){
-#   # read omega, likelihood of advancing to next level of health status from dataframe
-#   omega  <- probMatrix[recipient, ((exposer-1)*3 + exposure)]
-#   omega2 <- probMatrix[exposer, ((recipient-1)*3 + exposure)]
-#   
-#   # if omega is larger than a randomly selected number between 1 and a 100 then
-#   # the recipient will advance to the next level of health status (become sicker)
-#   # if not then the recipient stays at the same health status level
-#   if(sample(0:100, 1) < omega) recipient.new <- recipient + 1
-#   else recipient.new <- recipient
-#   
-#   if(sample(0:100, 1) < omega2) exposer.new <- exposer + 1
-#   else exposer.new <- exposer
-#   
-#   return(list(recipient.new, exposer.new))
-# }
+simDiseaseTrans2 <- function(recVec, expVec, exposure, probMatrix){
+  # recVec: vector containing attributes for recipient in an interaction
+  # expVec: vector containing attributes for exposer in an interaction
+  # these two vectors contain the following attributes: id, age, homestate google flu trend level, health status
+  # does the persona have comorbidity, if it has comorbidity what kind of comorbidity
+  # first we'll get the base probability then add weights for modifiers
+  # read disease transmission matrix for base probability
+  omega <- probMatrix[recVec[, healthstatus], ((expVec[, healthstatus]-1)*3 + exposure)]
+  
+  # add weights for modifiers. We'll only add these for health status less than 6
+  if(recVec[, healthstatus < 6]){
+    # now add the weight for comorbidity if it exists
+    if(recVec[, hascomorbidity]) omega <- omega + comorbidityWeight[[recVec[, comorbidity]]]
+    
+    # add weight for home state google flue trend 
+    if(recVec[, homestate] ==3) omega <- omega + 4
+    else if(recVec[, homestate] ==2) omega <- omega + 2
+    
+    # add weight for age
+    if(recVec[, age] < 20 | recVec[, age] >= 60) omega <- omega + 4
+    
+    # cap probability at a 100. This might happen since we are adding lots of probabilities
+    if(omega > 100) omega <- 100
+  }
+  
+  # add exposer ID and healthstatue level to vector. Also add exposure level and probability omega
+  recVec[, c("exposer.id", "exposer.HS", "expLevel", "omega") := list(expVec[, id], expVec[, healthstatus], exposure, omega)]
+
+  # if omega is larger than a randomly selected number between 1 and a 100 then
+  # the recipient will advance to the next level of health status (become sicker)
+  # if not then the recipient stays at the same health status level
+  if(sample(1:100, 1) <= omega) recVec[, postExpHS := healthstatus + 1]
+  else recVec[, postExpHS := healthstatus]
+  
+  return(recVec)
+}
 
 # this function takes three levels of percentages and creates a random sample of a given length 
 # using these percentages
@@ -79,30 +99,30 @@ interchange2V <- function(v1, v2){
 }
 
 # function to simulate the population with modifiers
-simPop <- function(N = 100, homeState, Age){
-  # simulate the population
-  healthStatus <- c(rep(1:4, N*0.2) ,rep(5:6, N*0.1))
+simPop <- function(N = 100){
+  # simulate the population, population is distributed in health statuses according to 
+  # precentages from Dawn. The hard coded percentages used in the following distributio 
+  # are taken from the excel spreadsheet provided by Bo
+  healthstatus <- c(rep(1:4, N*0.2) ,rep(5:6, N*0.1))
   # randomize the population  
-  healthStatus <- sample(healthStatus)
-  popDT <- data.table("id" = sample(1e4:9e4, N), "age" = sample(Age(N)), "homestate" = homeState(N), "healthstatus" = healthStatus)
-  popDT[, "hascomorbidity" := sapply(healthstatus, hasComorbidity)]
+  healthstatus <- sample(healthstatus)
+  
+  # distribution of population ages
+  age <- c(sample(10:20, 0.25*N, replace = TRUE), sample(21:60, 0.55*N, replace = TRUE), sample(61:81, 0.2*N, replace = TRUE))
+  
+  # google flu trend rank for home states 
+  homestate <- sample(1:3, N, replace = TRUE)
+  # We'll use data tables to store population attributes
+  popDT <- data.table("id" = sample(1e4:9e4, N), "age" = age, "healthstatus" = healthstatus, "homestate" = homestate)
+  
+  # add columns for comorbidities using the two comorbidities functions 
+  popDT[, "hascomorbidity" := sapply(healthstatus, hasComorbidityDist)]
   popDT[, "comorbidity" := sapply(hascomorbidity, comorbidity)]
   return(popDT)
 }
 
-# age distribution
-Age <- function(N){
-  c(sample(10:20, 0.25*N, replace = TRUE), sample(21:60, 0.55*N, replace = TRUE), sample(61:81, 0.2*N, replace = TRUE))
-}
-
-# function to simulate home state google flue trend status
-homeState <- function(N) sample(1:3, N, replace = TRUE)
-
-# dataframe containing home state google flue trend statusus and their weights
-homeStateWeight <- data.frame("homeState" = 1:3, "homeStateWeight" = c(0, 2, 4))
-
 # function to simulate the existance of comorbidity according to health status
-hasComorbidity <- function(healthStatus){
+hasComorbidityDist <- function(healthStatus){
   if(healthStatus == 1 | healthStatus == 2) hasComorbidity <- rbinom(n = 1, size = 1, prob = 0.18)
   else hasComorbidity <- rbinom(n = 1, size = 1, prob = 0.5)
   return(hasComorbidity)
@@ -116,6 +136,10 @@ comorbidity <- function(hasComorbidity){
   }
   return(comorbidity)
 }
+
+# comorbidities weight
+comorbidityWeight <- list("Diabetes" = 1, "CHF" = 1, "COPD" = 2, "Immunosuppressed" = 4, 
+                          "Cancer" = 4,  "Renal" = 4, "Transplant" = 5, "Cystic Fibrosis" = 4)
 
 
 # common theme for the ggplots
