@@ -37,9 +37,15 @@ shinyUI(pageWithSidebar(
     ),
     
     wellPanel(
+      helpText("Download Simulted Data: "),
+      br(),
       downloadButton('downloadPopData', 'Download Simulated Population'),
       br(),
-      downloadButton('downloadIntData', 'Download Simulated Interactions')
+      br(),
+      downloadButton('downloadIntData', 'Download Simulated Interactions'),
+      br(),
+      br(),
+      downloadButton('downloadMatrix', 'Download Transmission Probability Matrix')
     )
   ),
   

@@ -35,7 +35,7 @@ shinyServer(function(input, output) {
     # read, and adjust if prompted, the transmission probability matrix dataframe
     if(input$adjustMatrix){
       # subtract the new desired offset
-      transProbMatrix <- transProbMatrix-input$adjustMatrixn1PostExp
+      transProbMatrix <- transProbMatrix-input$adjustMatrixValue
       # Probability has be greater than zero
       transProbMatrix[transProbMatrix < 0] <- 0
     }
@@ -88,6 +88,20 @@ shinyServer(function(input, output) {
     return(population)
   })
   
+  Matrix <- reactive({
+    # Update only when update button is clicked 
+    input$goButton
+    # read, and adjust if prompted, the transmission probability matrix dataframe
+
+    if(input$adjustMatrix){
+      # subtract the new desired offset
+      transProbMatrix <- transProbMatrix-input$adjustMatrixValue
+      # Probability has be greater than zero
+      transProbMatrix[transProbMatrix < 0] <- 0
+    }
+    return(transProbMatrix)
+  })
+  
   dataTable2 <- reactive({
     # Update only when update button is clicked 
     input$goButton
@@ -110,6 +124,8 @@ shinyServer(function(input, output) {
     # obtain distribution of exposure levels
     exp.levels <- expLevels(exp.level.minor, exp.level.moderate, exp.level.high, N/2)
     
+    transProbMatrix <- isolate(Matrix())
+        
     simDT <- simDiseaseTrans2( popDT.1[1], popDT.2[1], exposure = exp.levels[1], probMatrix = transProbMatrix)
     simDT <- rbind(simDT, simDiseaseTrans2( popDT.2[1], popDT.1[1], exposure = exp.levels[1], probMatrix = transProbMatrix))
     
@@ -290,6 +306,13 @@ shinyServer(function(input, output) {
     filename = function() { paste('HP_HIMSS_Simulated_Interactions.csv', sep='') },
     content = function(file) {
       write.csv(dataTable2(), file, row.names = FALSE)
+    }
+  )
+  
+  output$downloadMatrix <- downloadHandler(
+    filename = function() { paste('HP_HIMSS_Disease_Transmission_Matrix.csv', sep='') },
+    content = function(file) {
+      write.csv(Matrix(), file, row.names = TRUE)
     }
   )
   
