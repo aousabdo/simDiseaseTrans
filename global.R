@@ -9,6 +9,7 @@
 library(ggplot2)
 library(data.table)
 library(gridExtra)
+library(Hmisc)
 
 # read disease probabilty transfer matrix and store it in a dataframe
 transProbMatrix  <- read.csv("disease_transmission_matrix_2.csv", header = FALSE)
@@ -56,17 +57,17 @@ simDiseaseTrans2 <- function(recVec, expVec, exposure, probMatrix){
     if(recVec[, hascomorbidity]) omega <- omega + comorbidityWeight[[recVec[, comorbidity]]]
     
     # add weight for home state google flue trend 
-    if(recVec[, homestate] ==3) omega <- omega + 4
-    else if(recVec[, homestate] ==2) omega <- omega + 2
+    if(recVec[, homestate == 3] ) omega <- omega + 4
+    else if(recVec[, homestate ==2 ]) omega <- omega + 2
     
     # add weight for age
-    if(recVec[, age] < 20 | recVec[, age] >= 60) omega <- omega + 4
+    if(recVec[, age < 20] | recVec[, age >= 60]) omega <- omega + 4
     
     # cap probability at a 100. This might happen since we are adding lots of probabilities
     if(omega > 100) omega <- 100
   }
   
-  # add exposer ID and healthstatue level to vector. Also add exposure level and probability omega
+  # add exposer's ID and healthstatus level. Also add exposure level and probability omega
   recVec[, c("exposer.id", "exposer.HS", "expLevel", "omega") := list(expVec[, id], expVec[, healthstatus], exposure, omega)]
 
   # if omega is larger than a randomly selected number between 1 and a 100 then
@@ -147,4 +148,6 @@ commonTheme <- theme(axis.text.x = element_text(angle=0, hjust=1, size = 14),
                      axis.title.x = element_text(face="bold", colour="black", size=16),
                      axis.text.y = element_text(angle=0, hjust=1, size = 14),
                      axis.title.y = element_text(face="bold", colour="black", size=16),
-                     plot.title = element_text(size = 20))
+                     plot.title = element_text(size = 20), 
+                     legend.title = element_text(colour="black", size=16, face="bold"),
+                     legend.text = element_text(colour="black", size = 16, face = "bold"))
