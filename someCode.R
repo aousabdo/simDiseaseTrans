@@ -38,15 +38,19 @@
 #                  "exposure" = interchange2V(exp.levels, exp.levels), "recipient.new" = interchange2V(value, value2))
 
 #####################
+# 
+# N <- 100
+# population <- c(rep(1:4, N*0.2) ,rep(5:6, N*0.1))
+# homeState <- sample(1:3, N, replace = TRUE)
+# homeStateWeight <- data.frame("homeState" = 1:3, "homeStateWeight" = c(0, 2, 4))
+# df<- cbind(homeState, population)
+# df <- as.data.frame(cbind(homeState, population))
+# df$homeState   <- as.factor(df$homeState)
+# df$population <- as.factor(df$population)
+# 
+# p <- ggplot(df, aes(x = population, fill = homeState)) + geom_histogram()
+# print(p)
 
-N <- 100
-population <- c(rep(1:4, N*0.2) ,rep(5:6, N*0.1))
-homeState <- sample(1:3, N, replace = TRUE)
-homeStateWeight <- data.frame("homeState" = 1:3, "homeStateWeight" = c(0, 2, 4))
-df<- cbind(homeState, population)
-df <- as.data.frame(cbind(homeState, population))
-df$homeState   <- as.factor(df$homeState)
-df$population <- as.factor(df$population)
 
-p <- ggplot(df, aes(x = population, fill = homeState)) + geom_histogram()
-print(p)
+p1 <- ggplot(simDT, aes(x = as.factor(healthstatus), fill = as.factor(cut2(age, cuts = c(20, 60))))) + geom_bar() 
+grid.arrange(p1, ncol = 1)
