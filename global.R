@@ -57,8 +57,8 @@ simDiseaseTrans2 <- function(recVec, expVec, exposure, probMatrix){
     if(recVec[, hascomorbidity]) omega <- omega + comorbidityWeight[[recVec[, comorbidity]]]
     
     # add weight for home state google flue trend 
-    if(recVec[, homestate == 3] ) omega <- omega + 4
-    else if(recVec[, homestate ==2 ]) omega <- omega + 2
+    if(recVec[, homestate == "High"] ) omega <- omega + 4
+    else if(recVec[, homestate == "Moderate" ]) omega <- omega + 2
     
     # add weight for age
     if(recVec[, age < 20] | recVec[, age >= 60]) omega <- omega + 4
@@ -68,7 +68,7 @@ simDiseaseTrans2 <- function(recVec, expVec, exposure, probMatrix){
   }
   
   # add exposer's ID and healthstatus level. Also add exposure level and probability omega
-  recVec[, c("exposer.id", "exposer.HS", "expLevel", "omega") := list(expVec[, id], expVec[, healthstatus], exposure, omega)]
+  recVec[, c("exposer.id", "exposer.HS", "expLevel", "probability") := list(expVec[, id], expVec[, healthstatus], exposure, omega)]
 
   # if omega is larger than a randomly selected number between 1 and a 100 then
   # the recipient will advance to the next level of health status (become sicker)
@@ -112,7 +112,7 @@ simPop <- function(N = 100){
   age <- c(sample(10:20, 0.25*N, replace = TRUE), sample(21:60, 0.55*N, replace = TRUE), sample(61:81, 0.2*N, replace = TRUE))
   
   # google flu trend rank for home states 
-  homestate <- sample(1:3, N, replace = TRUE)
+  homestate <- sample(c("Low", "Moderate", "High"), N, replace = TRUE)
   # We'll use data tables to store population attributes
   popDT <- data.table("id" = sample(1e4:9e4, N), "age" = age, "healthstatus" = healthstatus, "homestate" = homestate)
   
