@@ -37,8 +37,9 @@ shinyUI(pageWithSidebar(
     ),
     
     wellPanel(
-      downloadButton('downloadData', 'Download Simulated Data'),
-      helpText("Download button is not yet working.")
+      downloadButton('downloadPopData', 'Download Simulated Population'),
+      br(),
+      downloadButton('downloadIntData', 'Download Simulated Interactions')
     )
   ),
   

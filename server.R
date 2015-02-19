@@ -101,7 +101,7 @@ shinyServer(function(input, output) {
     # split it in two halves
     popDT.1 <- popDT[1:(nrow(popDT)/2)]
     popDT.2 <- popDT[(nrow(popDT)/2+1):nrow(popDT)]
-
+    
     # exposure levels
     exp.level.minor    <- input$exp.level.minor
     exp.level.moderate <- input$exp.level.moderate
@@ -121,6 +121,10 @@ shinyServer(function(input, output) {
     # recode exposure levels
     simDT[, expLevel := as.factor(expLevel)]
     levels(simDT$expLevel) <- c("Minor", "Moderate", "High")
+    
+    # recode homestate levels
+    simDT[, homestate := as.factor(homestate)]
+    levels(simDT$homestate) <- c("Low", "Moderate", "High")
     
     return(simDT)
   })
@@ -161,18 +165,16 @@ shinyServer(function(input, output) {
     p1 <- p1 + xlab("Health Status of Population") + ylab("Frequency") + ggtitle("Distribution of Health Status of Population\n")
     p1 <- p1 + theme_bw()
     p1 <- p1 + theme(legend.position="bottom")
-    p1 <- p1 + scale_fill_manual(values=c("#999999", "#E69F00", "#56B4E9"), 
+    p1 <- p1 + scale_fill_manual(values=c("#deebf7", "#9ecae1", "#3182bd"), 
                                  name="Population Age: ")
     p1 <- p1 + commonTheme
-
+    
     p2 <- ggplot(simDT, aes(x = as.factor(healthstatus), fill = as.factor(homestate))) + geom_bar() 
     p2 <- p2 + xlab("Health Status of Population") + ylab("Frequency") + ggtitle("Distribution of Health Status of Population\n")
     p2 <- p2 + theme_bw()
     p2 <- p2 + theme(legend.position="bottom")
-    p2 <- p2 + scale_fill_manual(values=c("#999999", "#E69F00", "#56B4E9"), 
-                                 name="Home-State Google Flu Trends: ",
-                                 breaks=c("1", "2", "3"),
-                                 labels=c(" Low ", " Moderate ", " High"))
+    p2 <- p2 + scale_fill_manual(values=c("#e7e1ef", "#c994c7", "#dd1c77"), 
+                                 name="Home-State Google Flu Trends: ")
     p2 <- p2 + commonTheme
     
     grid.arrange(p1, p2, ncol = 1)
@@ -250,16 +252,19 @@ shinyServer(function(input, output) {
   output$population <- renderDataTable({
     input$goButton
     popDT <- isolate(populationDT())
-    setnames(popDT, names(popDT), c('ID', 'Age', 'Home-State Google Flu-Trend Level', 'Health Status', 'Has Comorbidity',
+    popDT[, hascomorbidity := NULL]
+    setnames(popDT, names(popDT), c('ID', 'Age', 'Health Status', 'Home-State Google Flu-Trend Level',
                                     'Comorbidity'))
   })
   
   output$dataTable2 <- renderDataTable({
     input$goButton
     simDT <- isolate(dataTable2())
+    simDT[, hascomorbidity := NULL]
     setnames(simDT, names(simDT), c("Recipient ID", "Recipient Age", "Recipient Health Status", 
                                     "Recipient Home-state Google Flu-Trend Level",
-                                    "Recipient Has Morbiditiy", "Recipient Morbidity", "Exposer ID", "Exposer Health Status", 
+                                    #"Recipient Has Morbiditiy", 
+                                    "Recipient Morbidity", "Exposer ID", "Exposer Health Status", 
                                     "Exposure Level", "Probability", "Recipient Post-Exposure HS"))
   })
   
@@ -274,11 +279,18 @@ shinyServer(function(input, output) {
     transProbMatrix
   })
   
-  output$downloadData <- downloadHandler(
-    filename = function() { paste('Disease_Transmission_Simulations_',input$N, '_simPersonas_',
-                                  format(Sys.time(), "%m-%d-%Y_%H-%M-%S"),'.csv', sep='') },
+  output$downloadPopData <- downloadHandler(
+    filename = function() { paste('HP_HIMSS_Simulated_Population.csv', sep='') },
     content = function(file) {
-      write.csv(df, file)
-    })
+      write.csv(populationDT(), file, row.names = FALSE)
+    }
+  )
+  
+  output$downloadIntData <- downloadHandler(
+    filename = function() { paste('HP_HIMSS_Simulated_Interactions.csv', sep='') },
+    content = function(file) {
+      write.csv(dataTable2(), file, row.names = FALSE)
+    }
+  )
   
 })
