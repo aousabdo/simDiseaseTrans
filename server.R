@@ -92,7 +92,7 @@ shinyServer(function(input, output) {
     # Update only when update button is clicked 
     input$goButton
     # read, and adjust if prompted, the transmission probability matrix dataframe
-
+    
     if(input$adjustMatrix){
       # subtract the new desired offset
       transProbMatrix <- transProbMatrix-input$adjustMatrixValue
@@ -125,7 +125,7 @@ shinyServer(function(input, output) {
     exp.levels <- expLevels(exp.level.minor, exp.level.moderate, exp.level.high, N/2)
     
     transProbMatrix <- isolate(Matrix())
-        
+    
     simDT <- simDiseaseTrans2( popDT.1[1], popDT.2[1], exposure = exp.levels[1], probMatrix = transProbMatrix)
     simDT <- rbind(simDT, simDiseaseTrans2( popDT.2[1], popDT.1[1], exposure = exp.levels[1], probMatrix = transProbMatrix))
     
@@ -193,7 +193,24 @@ shinyServer(function(input, output) {
                                  name="Home-State Google Flu Trends: ")
     p2 <- p2 + commonTheme
     
-    grid.arrange(p1, p2, ncol = 1)
+    p3 <- ggplot(simDT, aes(x = changed, y = exposer.HS, fill = changed)) + geom_boxplot(notch = TRUE)
+    p3 <- p3 + xlab("Recipient Health Status Changed") + ylab("Exposer Health Status") 
+    p3 <- p3 + ggtitle("Change in Health Status by Exposer's Health Status\n") + scale_y_continuous(breaks = 1:6)
+    p3 <- p3 + theme_bw()
+    p3 <- p3 + theme(legend.position="None")
+    p3 <- p3 + scale_fill_manual(values=c("#deebf7", "#dd1c77"))
+    p3 <- p3 + commonTheme
+    
+    
+    p4 <- ggplot(simDT, aes(x = changed, y = healthstatus, fill = changed)) + geom_boxplot(notch = TRUE)
+    p4 <- p4 + xlab("Recipient Health Status Changed") + ylab("Recipient Health Status") 
+    p4 <- p4 + ggtitle("Change in Health Status by Exposer's Health Status\n") + scale_y_continuous(breaks = 1:6)
+    p4 <- p4 + theme_bw()
+    p4 <- p4 + theme(legend.position="None")
+    p4 <- p4 + scale_fill_manual(values=c("#deebf7", "#dd1c77"))
+    p4 <- p4 + commonTheme
+    
+    grid.arrange(p1, p2, p3, p4, ncol = 2)
   })
   # now make some plots
   output$distsPlot <- renderPlot({  
