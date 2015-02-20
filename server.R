@@ -281,7 +281,7 @@ shinyServer(function(input, output) {
                                     "Recipient Home-state Google Flu-Trend Level",
                                     #"Recipient Has Morbiditiy", 
                                     "Recipient Morbidity", "Exposer ID", "Exposer Health Status", 
-                                    "Exposure Level", "Probability", "Recipient Post-Exposure HS"))
+                                    "Exposure Level", "Probability", "Changed", "Recipient Post-Exposure HS"))
   })
   
   output$transMatrix <- renderTable({

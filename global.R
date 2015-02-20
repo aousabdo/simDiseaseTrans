@@ -68,12 +68,16 @@ simDiseaseTrans2 <- function(recVec, expVec, exposure, probMatrix){
   }
   
   # add exposer's ID and healthstatus level. Also add exposure level and probability omega
-  recVec[, c("exposer.id", "exposer.HS", "expLevel", "probability") := list(expVec[, id], expVec[, healthstatus], exposure, omega)]
+  recVec[, c("exposer.id", "exposer.HS", "expLevel", "probability", "changed") := 
+           list(expVec[, id], expVec[, healthstatus], exposure, omega, "No")]
 
   # if omega is larger than a randomly selected number between 1 and a 100 then
   # the recipient will advance to the next level of health status (become sicker)
   # if not then the recipient stays at the same health status level
-  if(sample(1:100, 1) <= omega) recVec[, postExpHS := healthstatus + 1]
+  if(sample(1:100, 1) <= omega) {
+    recVec[, postExpHS := healthstatus + 1]
+    recVec[, changed := "Yes"]
+  }
   else recVec[, postExpHS := healthstatus]
   
   return(recVec)
