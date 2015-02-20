@@ -173,6 +173,39 @@ shinyServer(function(input, output) {
     grid.arrange(p1, arrangeGrob(p3, p4, ncol = 2), ncol=1)  
   })
   
+  output$popPlotsSimple <- renderPlot({
+    input$goButton
+    simDT <- isolate(dataTable2())
+    
+    p1 <- ggplot(simDT, aes(x = as.factor(healthstatus))) + geom_bar(fill = "#B5DAFF") 
+    p1 <- p1 + xlab("Health Status of Population") + ylab("Frequency") #+ ggtitle("Distribution of Health Status of Population\n")
+    p1 <- p1 + theme_bw()
+    p1 <- p1 + commonTheme
+    
+    p2 <- ggplot(simDT, aes(x = cut2(age, cuts = c(20,60)))) + geom_bar(fill = "#B5DAFF") 
+    p2 <- p2 + xlab("Age Bands") + ylab("Frequency") #+ ggtitle("Populations Age Distribution\n")
+    p2 <- p2 + theme_bw()
+    p2 <- p2 + commonTheme
+    
+    p3 <- ggplot(simDT, aes(x = as.factor(homestate))) + geom_bar(fill = "#B5DAFF") 
+    p3 <- p3 + xlab("Home-State Google Flu-Trend Level") + ylab("Frequency") #+ ggtitle("Distribution of Home-State Google Flu-Trend Level\n")
+    p3 <- p3 + theme_bw()
+    p3 <- p3 + commonTheme
+    
+    p4 <- ggplot(na.omit(simDT), aes(x = as.factor(comorbidity), fill = as.factor(comorbidity))) + geom_bar() 
+    p4 <- p4 + ylab("Frequency") 
+    p4 <- p4 + theme_bw() + commonTheme 
+    p4 <- p4 + theme(legend.position="bottom", 
+                     axis.title.x=element_blank(), 
+                     axis.text.x=element_blank(), 
+                     axis.ticks=element_blank(),
+                     legend.title=element_blank())
+    p4 <- p4 + guides(fill = guide_legend(nrow = 2))
+    p4 <- p4 + scale_fill_brewer(palette="Spectral")
+    
+    grid.arrange(p1, p2, p3, p4, ncol = 2)
+  })
+  
   output$popPlots <- renderPlot({
     input$goButton
     simDT <- isolate(dataTable2())
@@ -212,6 +245,7 @@ shinyServer(function(input, output) {
     
     grid.arrange(p1, p2, p3, p4, ncol = 2)
   })
+  
   # now make some plots
   output$distsPlot <- renderPlot({  
     # Update only when update button is clicked
