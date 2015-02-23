@@ -140,7 +140,7 @@ shinyServer(function(input, output) {
     
     # recode homestate levels
     simDT[, homestate := as.factor(homestate)]
-    levels(simDT$homestate) <- c("Low", "Moderate", "High")
+    simDT$homestate <- reorder(simDT$homestate, new.order= c("Low", "Moderate", "High"))
     
     return(simDT)
   })
@@ -175,7 +175,7 @@ shinyServer(function(input, output) {
   
   output$popPlotsSimple <- renderPlot({
     input$goButton
-    simDT <- isolate(dataTable2())
+    simDT <- dataTable2()
     
     p1 <- ggplot(simDT, aes(x = as.factor(healthstatus))) + geom_bar(fill = "#B5DAFF") 
     p1 <- p1 + xlab("Health Status of Population") + ylab("Frequency") #+ ggtitle("Distribution of Health Status of Population\n")
@@ -305,6 +305,9 @@ shinyServer(function(input, output) {
     
   })
   
+  output$googleFluMap <- renderPlot({
+    print(fluMap())
+  })
   output$dataTable <- renderDataTable({
     # Update only when update button is clicked
     input$goButton

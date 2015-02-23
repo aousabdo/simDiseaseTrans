@@ -10,6 +10,11 @@ library(ggplot2)
 library(data.table)
 library(gridExtra)
 library(Hmisc)
+library(gdata)
+library(reshape2)
+library(tools)
+library(choroplethr)
+library(maps)
 
 # read disease probabilty transfer matrix and store it in a dataframe
 transProbMatrix  <- read.csv("disease_transmission_matrix_2.csv", header = FALSE)
@@ -80,6 +85,8 @@ simDiseaseTrans2 <- function(recVec, expVec, exposure, probMatrix){
   }
   else recVec[, postExpHS := healthstatus]
   
+  recVec[, changed := as.factor(changed)]
+  
   return(recVec)
 }
 
@@ -116,13 +123,14 @@ simPop <- function(N = 100){
   age <- c(sample(10:20, 0.25*N, replace = TRUE), sample(21:60, 0.55*N, replace = TRUE), sample(61:81, 0.2*N, replace = TRUE))
   
   # google flu trend rank for home states 
-  homestate <- sample(c("Low", "Moderate", "High"), N, replace = TRUE)
+  homestate <- sample(as.factor(c("Low", "Moderate", "High")), N, replace = TRUE)
+  homestate <- reorder(homestate, new.order = c("Low", "Moderate", "High"))
   # We'll use data tables to store population attributes
   popDT <- data.table("id" = sample(1e4:9e4, N), "age" = age, "healthstatus" = healthstatus, "homestate" = homestate)
   
   # add columns for comorbidities using the two comorbidities functions 
   popDT[, "hascomorbidity" := sapply(healthstatus, hasComorbidityDist)]
-  popDT[, "comorbidity" := sapply(hascomorbidity, comorbidity)]
+  popDT[, "comorbidity" := as.factor(sapply(hascomorbidity, comorbidity))]
   return(popDT)
 }
 
@@ -146,6 +154,77 @@ comorbidity <- function(hasComorbidity){
 comorbidityWeight <- list("Diabetes" = 1, "CHF" = 1, "COPD" = 2, "Immunosuppressed" = 4, 
                           "Cancer" = 4,  "Renal" = 4, "Transplant" = 5, "Cystic Fibrosis" = 4)
 
+googleFlu <- function(googleFluFileLink = "https://www.google.org/flutrends/us/data.txt", update = FALSE){
+  # googleFluFileLink is a pointer to the google flu trend text file
+  # this function downloads the latest text file, gets values for the last week of data, 
+  # converts it into a .csv file and saves it
+  
+  # if file exists and if update is false then don't redownload file
+  if(file.exists("./googleFluFile.txt")){
+    if(update){
+      # download file 
+      cat("Downloading File ....\n")
+      download.file(url = googleFluFileLink, destfile = "./googleFluFile.txt")
+    }
+  }#otherwise download file
+  else{
+    cat("Downloading File ....\n")
+    # download file 
+    download.file(url = googleFluFileLink, destfile = "./googleFluFile.txt")
+  }
+  
+  # fread will take care of the few, 11 lines, of text and will only read the data columns
+  flu <- fread("./googleFluFile.txt")
+
+  # keep only data for the last week (last row), also get rid of some columns that we don't need
+  flu <- flu[ nrow(flu), -c(1:2, 54:ncol(flu)), with = FALSE]
+
+  # convert to long format
+  flu <- melt(flu, variable.name = "state", value.name = "count")
+  
+  # let's add a categorical variable based on the counts
+  flu[, fluLevel := as.factor(cut2(count, g = 3))]
+  levels(flu$fluLevel) <- c("Low", "Moderate", "High")
+
+  
+  # set data.table key to count to sort the data.table by flu counts
+  setkey(flu, count)
+  
+  # save data.table to a csv file
+  write.csv(flu, "googleFluTrend.csv", row.names = FALSE)
+  
+  return(flu)
+}
+
+# function to make a choropleth map of google flu trends
+
+fluMap <- function(){
+  # get flu data
+  flu <- googleFlu()
+  
+  # transfer names of states to lower caps
+  flu[, state := tolower(state)]
+  # set key for merge with maps data
+  setkey(flu, state)
+  
+  # build states map data
+  states_map <- as.data.table(map_data('state'))
+  
+  # rename column for merge
+  states_map[, state := region]
+  states_map[, region := NULL]
+  
+  # set key for merge
+  setkey(states_map, state)
+    
+  flu_map <- merge(states_map, flu)
+  
+  p <- ggplot(flu_map, aes(x = long, y = lat, group = group, fill = count)) + geom_polygon(col="black") 
+  p <- p + theme_bw() + theme(legend.position = "none", text = element_blank(), line = element_blank()) + coord_map("polyconic") 
+  p <- p + scale_fill_continuous(low="yellow", high="red") 
+  
+  return(p)
+}
 
 # common theme for the ggplots
 commonTheme <- theme(axis.text.x = element_text(angle=0, hjust=1, size = 14),
