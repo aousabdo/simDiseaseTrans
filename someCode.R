@@ -135,3 +135,8 @@ p <- p + scale_fill_continuous(low="yellow", high="red")
   
 print(p)
 
+
+N <- 160
+foo <- flu[sample(1:nrow(flu), N, replace = TRUE)]
+state <- foo[, state]
+homestate <- foo[, fluLevel]

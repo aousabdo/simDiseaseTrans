@@ -1,5 +1,7 @@
 library(shiny)
 
+options(warn = -1)
+
 shinyServer(function(input, output) {
   
   dataTable <- reactive({
@@ -324,7 +326,7 @@ shinyServer(function(input, output) {
     popDT <- isolate(populationDT())
     popDT[, hascomorbidity := NULL]
     setnames(popDT, names(popDT), c('ID', 'Age', 'Health Status', 'Home-State Google Flu-Trend Level',
-                                    'Comorbidity'))
+                                    'State', 'Comorbidity'))
   })
   
   output$dataTable2 <- renderDataTable({
@@ -332,7 +334,7 @@ shinyServer(function(input, output) {
     simDT <- isolate(dataTable2())
     simDT[, hascomorbidity := NULL]
     setnames(simDT, names(simDT), c("Recipient ID", "Recipient Age", "Recipient Health Status", 
-                                    "Recipient Home-state Google Flu-Trend Level",
+                                    "Recipient Home-state Google Flu-Trend Level", "Recipient Home State",
                                     #"Recipient Has Morbiditiy", 
                                     "Recipient Morbidity", "Exposer ID", "Exposer Health Status", 
                                     "Exposure Level", "Probability", "Changed", "Recipient Post-Exposure HS"))
