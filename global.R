@@ -122,6 +122,7 @@ simPop <- function(N = 100){
   # distribution of population ages
   age <- c(sample(10:20, 0.25*N, replace = TRUE), sample(21:60, 0.55*N, replace = TRUE), sample(61:81, 0.2*N, replace = TRUE))
   
+<<<<<<< HEAD
   # read google flu data file and use it to simulate the states of participants
   flu         <- googleFlu()
   
@@ -129,11 +130,23 @@ simPop <- function(N = 100){
   homestate   <- flu[sample(1:nrow(flu), N, replace = TRUE)]
   
   # variables to add to the table, the state of the persona and its google flu level 
+=======
+  # google flu trend rank for home states 
+  homestate <- sample(as.factor(c("Low", "Moderate", "High")), N, replace = TRUE)
+  homestate <- reorder(homestate, new.order = c("Low", "Moderate", "High"))
+  
+  flu         <- googleFlu()
+  homestate   <- flu[sample(1:nrow(flu), N, replace = TRUE)]
+>>>>>>> 7e8e38be3bdfb07317cc582dbbba3f862445f490
   state       <- homestate[, state]
   homestateFL <- homestate[, fluLevel]
   
   # We'll use data tables to store population attributes
+<<<<<<< HEAD
   popDT <- data.table("id" = sample(1e4:9e4, N), "age" = age, "healthstatus" = healthstatus, "homestate" = homestateFL, "state" = sta)
+=======
+  popDT <- data.table("id" = sample(1e4:9e4, N), "age" = age, "healthstatus" = healthstatus, "homestate" = homestateFL, "state" = state)
+>>>>>>> 7e8e38be3bdfb07317cc582dbbba3f862445f490
   
   # add columns for comorbidities using the two comorbidities functions 
   popDT[, "hascomorbidity" := sapply(healthstatus, hasComorbidityDist)]
