@@ -237,7 +237,8 @@ fluMap <- function(fluData, popDT){
   p1 <- p1 + theme_bw() + theme(legend.position = "none", line = element_blank()) + coord_map("polyconic") 
   p1 <- p1 + scale_fill_continuous(low="yellow", high="red") + commonTheme
   p1 <- p1 + ggtitle("Google Flu Trends\n")
-  p1 <- p1 + annotate("text", x = -95, y = 25, label = "Data Source: Google Flu Trends (http://www.google.org/flutrends)", size = 4)
+  p1 <- p1 + annotate("text", x = -95, y = 25, size = 4, colour = "blue", 
+                      label = "Data Source: Google Flu Trends (http://www.google.org/flutrends)")
   p1 <- p1 + theme(axis.text.x = element_text(colour = "white"),
                  axis.title.x = element_text(colour="white"),
                  axis.text.y = element_text(colour = "white"),
@@ -255,7 +256,10 @@ fluMap <- function(fluData, popDT){
   setkey(stateDT, state)   
   
   # merge with state map data
-  persona_map <- merge(states_map, stateDT)
+  persona_map <- merge(states_map, stateDT, all.x = TRUE) # we are keeping all states
+  
+  # reset NAs to zeros for missing states
+  set(persona_map, i = which(is.na(persona_map[[7]])), j = i, value = 0)
 
   p2 <- ggplot(persona_map, aes(x = long, y = lat, group = group, fill = personas.from.state)) + geom_polygon(col="black") 
   p2 <- p2 + theme_bw() + theme(legend.position = "none", line = element_blank()) + coord_map("polyconic") 
