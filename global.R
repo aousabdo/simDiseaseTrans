@@ -188,6 +188,9 @@ googleFlu <- function(googleFluFileLink = "https://www.google.org/flutrends/us/d
 
   # keep only data for the last week (last row), also get rid of some columns that we don't need
   flu <- flu[ nrow(flu), -c(1:2, 54:ncol(flu)), with = FALSE]
+  
+  # also get rid of Hawaii and Alaska since R can't plot them
+  flu[,c("Alaska", "Hawaii") := list(NULL, NULL)]
 
   # convert to long format
   flu <- melt(flu, variable.name = "state", value.name = "count")
@@ -222,7 +225,7 @@ fluMap <- function(fluData, popDT){
   states_map <- as.data.table(map_data('state'))
   
   # rename column for merge
-  states_map[, state := region]
+  states_map[, state := as.factor(region)]
   states_map[, region := NULL]
   
   # set key for merge
