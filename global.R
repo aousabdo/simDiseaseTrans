@@ -259,7 +259,7 @@ fluMap <- function(fluData, popDT){
   persona_map <- merge(states_map, stateDT, all.x = TRUE) # we are keeping all states
   
   # reset NAs to zeros for missing states
-  set(persona_map, i = which(is.na(persona_map[[7]])), j = i, value = 0)
+  set(persona_map, which(is.na(persona_map[[7]])), j = 7, value = 0)
 
   p2 <- ggplot(persona_map, aes(x = long, y = lat, group = group, fill = personas.from.state)) + geom_polygon(col="black") 
   p2 <- p2 + theme_bw() + theme(legend.position = "none", line = element_blank()) + coord_map("polyconic") 
