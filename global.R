@@ -236,6 +236,7 @@ fluMap <- function(fluData, popDT){
   p1 <- ggplot(flu_map, aes(x = long, y = lat, group = group, fill = count)) + geom_polygon(col="black") 
   p1 <- p1 + theme_bw() + theme(legend.position = "none", line = element_blank()) + coord_map("polyconic") 
   p1 <- p1 + scale_fill_continuous(low="yellow", high="red") + commonTheme
+  #   p1 <- p1 + scale_fill_manual(name = "Number of Participants\t",values=c("#999999", "#E69F00", "#56B4E9"))
   p1 <- p1 + ggtitle("Google Flu Trends\n")
   p1 <- p1 + annotate("text", x = -95, y = 25, size = 4, colour = "blue", 
                       label = "Data Source: Google Flu Trends (http://www.google.org/flutrends)")
@@ -262,8 +263,8 @@ fluMap <- function(fluData, popDT){
   set(persona_map, which(is.na(persona_map[[7]])), j = 7, value = 0)
 
   p2 <- ggplot(persona_map, aes(x = long, y = lat, group = group, fill = personas.from.state)) + geom_polygon(col="black") 
-  p2 <- p2 + theme_bw() + theme(legend.position = "none", line = element_blank()) + coord_map("polyconic") 
-  p2 <- p2 + scale_fill_continuous(low="#ffeda0", high="#f03b20") + commonTheme
+  p2 <- p2 + theme_bw() + theme(legend.position = "bottom", line = element_blank()) + coord_map("polyconic") 
+  p2 <- p2 + scale_fill_gradient(name = "Number of Participants\t", low="white", high="red") + commonTheme
   p2 <- p2 + ggtitle("Map of where our Participants came from\n")
   p2 <- p2 + theme(axis.text.x = element_text(colour = "white"),
                    axis.title.x = element_text(colour="white"),
