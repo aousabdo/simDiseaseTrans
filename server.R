@@ -140,6 +140,8 @@ shinyServer(function(input, output) {
     simDT[, expLevel := as.factor(expLevel)]
     levels(simDT$expLevel) <- c("Minor", "Moderate", "High")
     
+    simDT$changed <- reorder(simDT$changed, new.order = c("No", "Yes"))
+    
     # recode homestate levels
     simDT[, homestate := as.factor(homestate)]
     simDT$homestate <- reorder(simDT$homestate, new.order= c("Low", "Moderate", "High"))
@@ -210,7 +212,7 @@ shinyServer(function(input, output) {
   
   output$popPlots <- renderPlot({
     input$goButton
-    simDT <- isolate(dataTable2())
+    simDT <- dataTable2()
     
     p1 <- ggplot(simDT, aes(x = as.factor(healthstatus), fill = as.factor(cut2(age, cuts = c(20, 60))))) + geom_bar() 
     p1 <- p1 + xlab("Health Status of Population") + ylab("Frequency") + ggtitle("Distribution of Health Status of Population\n")
