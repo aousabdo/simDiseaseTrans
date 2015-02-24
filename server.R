@@ -308,7 +308,10 @@ shinyServer(function(input, output) {
   })
   
   output$googleFluMap <- renderPlot({
-    print(fluMap())
+    # get flu data
+    flu <- googleFlu()
+    popDT <- populationDT()
+    fluMap(flu, popDT)  
   })
   output$dataTable <- renderDataTable({
     # Update only when update button is clicked

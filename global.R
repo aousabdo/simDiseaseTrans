@@ -15,6 +15,7 @@ library(reshape2)
 library(tools)
 library(choroplethr)
 library(maps)
+library(mapproj)
 
 # read disease probabilty transfer matrix and store it in a dataframe
 transProbMatrix  <- read.csv("disease_transmission_matrix_2.csv", header = FALSE)
@@ -122,7 +123,6 @@ simPop <- function(N = 100){
   # distribution of population ages
   age <- c(sample(10:20, 0.25*N, replace = TRUE), sample(21:60, 0.55*N, replace = TRUE), sample(61:81, 0.2*N, replace = TRUE))
   
-<<<<<<< HEAD
   # read google flu data file and use it to simulate the states of participants
   flu         <- googleFlu()
   
@@ -130,23 +130,13 @@ simPop <- function(N = 100){
   homestate   <- flu[sample(1:nrow(flu), N, replace = TRUE)]
   
   # variables to add to the table, the state of the persona and its google flu level 
-=======
-  # google flu trend rank for home states 
-  homestate <- sample(as.factor(c("Low", "Moderate", "High")), N, replace = TRUE)
-  homestate <- reorder(homestate, new.order = c("Low", "Moderate", "High"))
-  
   flu         <- googleFlu()
   homestate   <- flu[sample(1:nrow(flu), N, replace = TRUE)]
->>>>>>> 7e8e38be3bdfb07317cc582dbbba3f862445f490
   state       <- homestate[, state]
   homestateFL <- homestate[, fluLevel]
   
   # We'll use data tables to store population attributes
-<<<<<<< HEAD
-  popDT <- data.table("id" = sample(1e4:9e4, N), "age" = age, "healthstatus" = healthstatus, "homestate" = homestateFL, "state" = sta)
-=======
   popDT <- data.table("id" = sample(1e4:9e4, N), "age" = age, "healthstatus" = healthstatus, "homestate" = homestateFL, "state" = state)
->>>>>>> 7e8e38be3bdfb07317cc582dbbba3f862445f490
   
   # add columns for comorbidities using the two comorbidities functions 
   popDT[, "hascomorbidity" := sapply(healthstatus, hasComorbidityDist)]
@@ -218,14 +208,15 @@ googleFlu <- function(googleFluFileLink = "https://www.google.org/flutrends/us/d
 
 # function to make a choropleth map of google flu trends
 
-fluMap <- function(){
-  # get flu data
-  flu <- googleFlu()
+fluMap <- function(fluData, popDT){
+  # This function makes two maps: google flu trend map and 
+  # a choropleth map of states where our participants came from
   
+  # make the google flu trned map first
   # transfer names of states to lower caps
-  flu[, state := tolower(state)]
+  fluData[, state := tolower(state)]
   # set key for merge with maps data
-  setkey(flu, state)
+  setkey(fluData, state)
   
   # build states map data
   states_map <- as.data.table(map_data('state'))
@@ -237,13 +228,42 @@ fluMap <- function(){
   # set key for merge
   setkey(states_map, state)
     
-  flu_map <- merge(states_map, flu)
+  flu_map <- merge(states_map, fluData)
   
-  p <- ggplot(flu_map, aes(x = long, y = lat, group = group, fill = count)) + geom_polygon(col="black") 
-  p <- p + theme_bw() + theme(legend.position = "none", text = element_blank(), line = element_blank()) + coord_map("polyconic") 
-  p <- p + scale_fill_continuous(low="yellow", high="red") 
+  p1 <- ggplot(flu_map, aes(x = long, y = lat, group = group, fill = count)) + geom_polygon(col="black") 
+  p1 <- p1 + theme_bw() + theme(legend.position = "none", line = element_blank()) + coord_map("polyconic") 
+  p1 <- p1 + scale_fill_continuous(low="yellow", high="red") + commonTheme
+  p1 <- p1 + ggtitle("Google Flu Trends\n")
+  p1 <- p1 + annotate("text", x = -95, y = 25, label = "Data Source: Google Flu Trends (http://www.google.org/flutrends)", size = 4)
+  p1 <- p1 + theme(axis.text.x = element_text(colour = "white"),
+                 axis.title.x = element_text(colour="white"),
+                 axis.text.y = element_text(colour = "white"),
+                 axis.title.y = element_text(colour="white"),
+                 plot.title = element_text(size = 20, colour = "blue", face = "bold"))
   
-  return(p)
+  # now build the population map
+  popDT[, state := tolower(state)]
+  
+  # make a data.table for state occurances
+  stateDT <- as.data.table(table(popDT$state))
+  names(stateDT) <- c("state", "personas.from.state")
+  
+  # set key for merge with maps data
+  setkey(stateDT, state)   
+  
+  # merge with state map data
+  persona_map <- merge(states_map, stateDT)
+
+  p2 <- ggplot(persona_map, aes(x = long, y = lat, group = group, fill = personas.from.state)) + geom_polygon(col="black") 
+  p2 <- p2 + theme_bw() + theme(legend.position = "none", line = element_blank()) + coord_map("polyconic") 
+  p2 <- p2 + scale_fill_continuous(low="#ffeda0", high="#f03b20") + commonTheme
+  p2 <- p2 + ggtitle("Map of where our Participants came from\n")
+  p2 <- p2 + theme(axis.text.x = element_text(colour = "white"),
+                   axis.title.x = element_text(colour="white"),
+                   axis.text.y = element_text(colour = "white"),
+                   axis.title.y = element_text(colour="white"),
+                   plot.title = element_text(size = 20, colour = "blue", face = "bold"))  
+  grid.arrange(p1, p2, ncol=1)
 }
 
 # common theme for the ggplots
