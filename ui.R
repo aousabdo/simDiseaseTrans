@@ -55,7 +55,7 @@ shinyUI(pageWithSidebar(
       tabPanel("Figures 1", plotOutput("distsPlot2", width = 1100, height=850)),
       tabPanel("Figures 2", plotOutput("popPlotsSimple", width = 1100, height=850)),
       tabPanel("Figures 3", plotOutput("popPlots", width = 1100, height=850)),
-      tabPanel("Flu Map", plotOutput("googleFluMap", width = 1100, height=850)),
+      tabPanel("Flu Map", plotOutput("googleFluMap", width = 1100, height=1000)),
       tabPanel("Post-Exposure Status of Recipients", plotOutput("postExpPlot", width = 1100, height=850)),
       tabPanel("Simulated Population", dataTableOutput("population")),
       tabPanel("Simulated Interactions", dataTableOutput("dataTable2")),
