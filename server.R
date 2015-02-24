@@ -357,21 +357,21 @@ shinyServer(function(input, output) {
   })
   
   output$downloadPopData <- downloadHandler(
-    filename = function() { paste('HP_HIMSS_Simulated_Population.csv', sep='') },
+    filename = function() { paste('HP_HIMSS_Simulated_Population_', format(Sys.time(), "%Y-%m-%d_%H-%M-%S"), '.csv', sep='') },
     content = function(file) {
       write.csv(populationDT(), file, row.names = FALSE)
     }
   )
   
   output$downloadIntData <- downloadHandler(
-    filename = function() { paste('HP_HIMSS_Simulated_Interactions.csv', sep='') },
+    filename = function() { paste('HP_HIMSS_Simulated_Interactions_' , format(Sys.time(), "%Y-%m-%d_%H-%M-%S"), '.csv', sep='') },
     content = function(file) {
       write.csv(dataTable2(), file, row.names = FALSE)
     }
   )
   
   output$downloadMatrix <- downloadHandler(
-    filename = function() { paste('HP_HIMSS_Disease_Transmission_Matrix.csv', sep='') },
+    filename = function() { paste('HP_HIMSS_Disease_Transmission_Matrix_', format(Sys.time(), "%Y-%m-%d_%H-%M-%S"), '.csv', sep='') },
     content = function(file) {
       write.csv(Matrix(), file, row.names = TRUE)
     }
