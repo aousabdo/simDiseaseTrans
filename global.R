@@ -13,18 +13,21 @@ library(Hmisc)
 library(gdata)
 library(reshape2)
 library(tools)
-library(choroplethr)
 library(maps)
 library(mapproj)
 
+# -------------------------------------------------------------------------------------#
 # read disease probabilty transfer matrix and store it in a dataframe
 transProbMatrix  <- read.csv("disease_transmission_matrix_2.csv", header = FALSE)
 
+# -------------------------------------------------------------------------------------#
 # assign somewhat useful column and row names for the display in the shiny app
-colnames(transProbMatrix) <- paste("Exposer HS ", rep(1:6, each = 3), " EL: ", rep(c(" Minor ", " Moderate ", " High"),3), sep = "")
+colnames(transProbMatrix) <- paste("Exposer HS ", rep(1:6, each = 3), " EL: ", 
+                                   rep(c(" Minor ", " Moderate ", " High"),3), sep = "")
 rownames(transProbMatrix) <- paste("Recipient HS ", rep(1:6), sep = "")
+# -------------------------------------------------------------------------------------#
 
-
+# -------------------------------------------------------------------------------------#
 # function to simulate the spread of the disease
 simDiseaseTrans <- function(recipient = 3, exposer = 5, exposure = 2, homeState = 2, probMatrix){
   # recipient and exposer take values between 1 and 6
@@ -47,7 +50,9 @@ simDiseaseTrans <- function(recipient = 3, exposer = 5, exposure = 2, homeState 
   if(recipient.new >6 ) recipient.new = 6
   return(recipient.new)
 }
+# -------------------------------------------------------------------------------------#
 
+# -------------------------------------------------------------------------------------#
 simDiseaseTrans2 <- function(recVec, expVec, exposure, probMatrix){
   # recVec: vector containing attributes for recipient in an interaction
   # expVec: vector containing attributes for exposer in an interaction
@@ -90,7 +95,9 @@ simDiseaseTrans2 <- function(recVec, expVec, exposure, probMatrix){
   
   return(recVec)
 }
+# -------------------------------------------------------------------------------------#
 
+# -------------------------------------------------------------------------------------#
 # this function takes three levels of percentages and creates a random sample of a given length 
 # using these percentages
 expLevels <- function(l1, l2, l3, N){
@@ -105,12 +112,16 @@ expLevels <- function(l1, l2, l3, N){
   }
   return(sample(exp.levels))
 }
+# -------------------------------------------------------------------------------------#
 
+# -------------------------------------------------------------------------------------#
 # function to merge two vectors interchangebly
 interchange2V <- function(v1, v2){
   as.vector(rbind(v1, v2))
 }
+# -------------------------------------------------------------------------------------#
 
+# -------------------------------------------------------------------------------------#
 # function to simulate the population with modifiers
 simPop <- function(N = 100){
   # simulate the population, population is distributed in health statuses according to 
@@ -136,35 +147,85 @@ simPop <- function(N = 100){
   homestateFL <- homestate[, fluLevel]
   
   # We'll use data tables to store population attributes
-  popDT <- data.table("id" = sample(1e4:9e4, N), "age" = age, "healthstatus" = healthstatus, "homestate" = homestateFL, "state" = state)
+  popDT <- data.table("id" = sample(1e4:9e4, N), "age" = age, "healthstatus" = healthstatus, 
+                      "homestate" = homestateFL, "state" = state)
   
   # add columns for comorbidities using the two comorbidities functions 
   popDT[, "hascomorbidity" := sapply(healthstatus, hasComorbidityDist)]
   popDT[, "comorbidity" := as.factor(sapply(hascomorbidity, comorbidity))]
   return(popDT)
 }
+# -------------------------------------------------------------------------------------#
 
+
+# -------------------------------------------------------------------------------------#
+simInteraction <- function(popDT, exp.levels = NULL, probMatrix = NULL){
+  # function to simulate the interaction between personas in a population popDT
+  # split given population in halves
+  popDT.1 <- popDT[1:(nrow(popDT)/2)] # this will be the recipients data.table
+  popDT.2 <- popDT[(nrow(popDT)/2+1):nrow(popDT)] # this will be the exposers data.tables
+  
+  # change names of recipient and exposers columns
+  setnames(popDT.1, paste('rec', names(popDT.1), sep = "."))
+  setnames(popDT.2, paste('exp', names(popDT.2), sep = "."))
+  
+  # bind two data.table in one.
+  popInteraction <- cbind(popDT.1, popDT.2)
+  
+  if(is.null(exp.levels)){
+    # obtain distribution of exposure levels
+    exp.levels <- expLevels(30, 30, 40, nrow(popDT)/2)
+  }
+  
+  # add exposure entry to data.table
+  popInteraction[, exposure := exp.levels]
+  
+  popInteraction[, rec.HS.PostExp := diag(sapply(popInteraction$rec.healthstatus, readMatrix,
+                                                 expHS = popInteraction$exp.healthstatus,
+                                                 exposure = popInteraction$exposure, probMatrix= probMatrix))]
+  return(popInteraction)
+}
+# -------------------------------------------------------------------------------------#
+
+# -------------------------------------------------------------------------------------#
+# function to read 
+readMatrix <- function(recHS, expHS, exposure, probMatrix){
+  probMatrix[recHS, ((expHS-1)*3 + exposure)]
+}
+# -------------------------------------------------------------------------------------#
+
+
+# -------------------------------------------------------------------------------------#
 # function to simulate the existance of comorbidity according to health status
 hasComorbidityDist <- function(healthStatus){
   if(healthStatus == 1 | healthStatus == 2) hasComorbidity <- rbinom(n = 1, size = 1, prob = 0.18)
   else hasComorbidity <- rbinom(n = 1, size = 1, prob = 0.5)
   return(hasComorbidity)
 }
+# -------------------------------------------------------------------------------------#
 
+# -------------------------------------------------------------------------------------#
 # function to assign comorbidities 
 comorbidity <- function(hasComorbidity){
   if(!hasComorbidity) comorbidity <- NA
   else comorbidity <- {
-    sample(c("Diabetes", "CHF", "COPD", "Immunosuppressed", "Cancer",	"Renal", "Transplant", "Cystic Fibrosis"), 1)
+    sample(c("Diabetes", "CHF", "COPD", "Immunosuppressed", "Cancer",	"Renal", "Transplant", 
+             "Cystic Fibrosis"), 1)
   }
   return(comorbidity)
 }
+# -------------------------------------------------------------------------------------#
 
+# -------------------------------------------------------------------------------------#
 # comorbidities weight
 comorbidityWeight <- list("Diabetes" = 1, "CHF" = 1, "COPD" = 2, "Immunosuppressed" = 4, 
                           "Cancer" = 4,  "Renal" = 4, "Transplant" = 5, "Cystic Fibrosis" = 4)
 
-googleFlu <- function(googleFluFileLink = "https://www.google.org/flutrends/us/data.txt", update = FALSE){
+# -------------------------------------------------------------------------------------#
+
+# -------------------------------------------------------------------------------------#
+googleFlu <- function(googleFluFileLink = "https://www.google.org/flutrends/us/data.txt", 
+                      update = FALSE){
   # googleFluFileLink is a pointer to the google flu trend text file
   # this function downloads the latest text file, gets values for the last week of data, 
   # converts it into a .csv file and saves it
@@ -208,9 +269,10 @@ googleFlu <- function(googleFluFileLink = "https://www.google.org/flutrends/us/d
   
   return(flu)
 }
+# -------------------------------------------------------------------------------------#
 
+# -------------------------------------------------------------------------------------#
 # function to make a choropleth map of google flu trends
-
 fluMap <- function(fluData, popDT){
   # This function makes two maps: google flu trend map and 
   # a choropleth map of states where our participants came from
@@ -273,7 +335,9 @@ fluMap <- function(fluData, popDT){
                    plot.title = element_text(size = 20, colour = "blue", face = "bold"))  
   grid.arrange(p1, p2, ncol=1)
 }
+# -------------------------------------------------------------------------------------#
 
+# -------------------------------------------------------------------------------------#
 # common theme for the ggplots
 commonTheme <- theme(axis.text.x = element_text(angle=0, hjust=1, size = 14),
                      axis.title.x = element_text(face="bold", colour="black", size=16),
@@ -282,3 +346,4 @@ commonTheme <- theme(axis.text.x = element_text(angle=0, hjust=1, size = 14),
                      plot.title = element_text(size = 20), 
                      legend.title = element_text(colour="black", size=16, face="bold"),
                      legend.text = element_text(colour="black", size = 16, face = "bold"))
+# -------------------------------------------------------------------------------------#

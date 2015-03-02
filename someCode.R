@@ -112,31 +112,94 @@
 # p8 <- mosaicplot(table(simDT$homestate, simDT$changed), main="Mosaic of \"Changed\" by Home State", 
 #                  color=colorspace::rainbow_hcl(3)[-1], cex=1.1, xlab="Home-State Google Flu-Trend Level", ylab="Changed")
 
+# 
+# flu <- googleFlu()
+# flu[, state := tolower(state)]
+# setkey(flu, state)
+# 
+# states_map <- as.data.table(map_data('state'))
+# #rename
+# states_map[, state := region]
+# states_map[, region := NULL]
+# setkey(states_map, state)
+# 
+# 
+# flu_map <- merge(states_map, flu)
+# 
+# p <- ggplot(flu_map, aes(x = long, y = lat, group = group, fill = count)) + geom_polygon(col="black") 
+# p <- p + theme_bw() + theme(legend.position = "none", line = element_blank()) + coord_map("polyconic") 
+# p <- p + scale_fill_continuous(low="yellow", high="red") + commonTheme
+# p <- p + ggtitle("Google Flu Trends\nData Source: Google Flu Trends (http://www.google.org/flutrends)\n")
+# p <- p + theme(axis.text.x = element_text(angle=0, hjust=1, size = 14, colour = "white"),
+#                axis.title.x = element_text(colour="white"),
+#                axis.text.y = element_text(colour = "white"),
+#                axis.title.y = element_text(colour="white"),
+#                plot.title = element_text(size = 20))
+#   
+# print(p)
+# 
+# 
+# N <- 160
+# foo <- flu[sample(1:nrow(flu), N, replace = TRUE)]
+# state <- foo[, state]
+# homestate <- foo[, fluLevel]
 
 
+t0 <- Sys.time()
+N <- 1000
+popDT <- simPop(N = N)
 
-
-flu <- googleFlu()
-flu[, state := tolower(state)]
-setkey(flu, state)
-
-states_map <- as.data.table(map_data('state'))
-#rename
-states_map[, state := region]
-states_map[, region := NULL]
-setkey(states_map, state)
-
-
-flu_map <- merge(states_map, flu)
-
-p <- ggplot(flu_map, aes(x = long, y = lat, group = group, fill = count)) + geom_polygon(col="black") 
-p <- p + theme_bw() + theme(legend.position = "none", text = element_blank(), line = element_blank()) + coord_map("polyconic") 
-p <- p + scale_fill_continuous(low="yellow", high="red") 
+simInteraction <- function(popDT, exp.levels = NULL, probMatrix = NULL){
+  # function to simulate the interaction between personas in a population popDT
+  # split given population in halves
+  popDT.1 <- popDT[1:(nrow(popDT)/2)] # this will be the recipients data.table
+  popDT.2 <- popDT[(nrow(popDT)/2+1):nrow(popDT)] # this will be the exposers data.tables
   
-print(p)
+  # change names of recipient and exposers columns
+  setnames(popDT.1, paste('rec', names(popDT.1), sep = "."))
+  setnames(popDT.2, paste('exp', names(popDT.2), sep = "."))
+  
+  # bind two data.table in one.
+  popInteraction <- cbind(popDT.1, popDT.2)
+  
+  if(is.null(exp.levels)){
+    # obtain distribution of exposure levels
+    exp.levels <- expLevels(30, 30, 40, nrow(popDT)/2)
+  }
+  
+  # add exposure entry to data.table
+  popInteraction[, exposure := exp.levels]
+  
+  popInteraction[, rec.HS.PostExp := diag(sapply(popInteraction$rec.healthstatus, readMatrix,
+                                                 expHS = popInteraction$exp.healthstatus,
+                                                 exposure = popInteraction$exposure, probMatrix= probMatrix))]
+  return(popInteraction)
+}
 
+readMatrix <- function(recHS, expHS, exposure, probMatrix){
+  probMatrix[recHS, ((expHS-1)*3 + exposure)]
+}
 
-N <- 160
-foo <- flu[sample(1:nrow(flu), N, replace = TRUE)]
-state <- foo[, state]
-homestate <- foo[, fluLevel]
+simDiseaseTransDT <- function(pop, probMatrix){
+  pop[, omega := probMatrix[pop[, rec.healthstatus], ((pop[, exp.healthstatus]-1)*3 + pop[,exposure])]]
+  
+  #   # add weights for modifiers. We'll only add these for health status less than 6
+  #   if(pop[, rec.healthstatus < 6]){
+  #     # now add the weight for comorbidity if it exists
+  #     if(pop[, rec.hascomorbidity]) omega <- omega + comorbidityWeight[[pop[, rec.comorbidity]]]
+  #     
+  #     # add weight for home state google flue trend 
+  #     if(pop[, rec.homestate == "High"] ) omega <- omega + 4
+  #     else if(pop[, rec.homestate == "Moderate" ]) omega <- omega + 2
+  #     
+  #     # add weight for age
+  #     if(pop[, rec.age < 20] | pop[, rec.age >= 60]) omega <- omega + 4
+  #     
+  #     # cap probability at a 100. This might happen since we are adding lots of probabilities
+  #     if(omega > 100) omega <- 100
+  #   }
+  #   
+  #   # add exposer's ID and healthstatus level. Also add exposure level and probability omega
+  #   pop[, c("probability", "changed") := list(omega, "No")]
+  return(pop)
+}
