@@ -171,8 +171,17 @@ simInteraction <- function(population, exp.levels = NULL, probMatrix = NULL){
   
   # bind two data.table in one.
   populationNew <- cbind(popDT.1, popDT.2)
+
+  # now we need to take care of the two way interaction
+  # change names of recipient and exposers columns
+  setnames(popDT.1, gsub('rec', 'exp', names(popDT.1)))
+  setnames(popDT.2, gsub('exp', 'rec', names(popDT.2)))
   
+  # add second-way interaction
+  populationNew <- rbind(populationNew, cbind(popDT.2, popDT.1))
+
   # add exposure entry to data.table
+  # exposure will be recycled correctly
   populationNew[, exposure := exp.levels]
   
   # add probability
@@ -207,7 +216,11 @@ modifiers <- function(population){
   # cap probability at a 100. This might happen since we are adding lots of probabilities
   population.tmp[probability > 100, probability := 100]
   
+  # HS 6 probability is zero
   population.tmp[rec.healthstatus == 6, probability := 0]
+  
+  # clean data.table since we don't need all columns at this stage
+  population.tmp[, c("rec.hascomorbidity", "exp.hascomorbidity", "exp.age", "exp.homestate", "exp.state", "exp.comorbidity") := NULL]
   
   return(population.tmp)
 }
