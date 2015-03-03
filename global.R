@@ -170,20 +170,22 @@ simInteraction <- function(population, exp.levels = NULL, probMatrix = NULL){
   setnames(popDT.2, paste('exp', names(popDT.2), sep = "."))
   
   # bind two data.table in one.
-  populationNew <- cbind(popDT.1, popDT.2)
-
+  tmp.1 <- cbind(popDT.1, popDT.2)
+  
+  tmp.1[, exposure := exp.levels]
+  
   # now we need to take care of the two way interaction
   # change names of recipient and exposers columns
   setnames(popDT.1, gsub('rec', 'exp', names(popDT.1)))
   setnames(popDT.2, gsub('exp', 'rec', names(popDT.2)))
   
   # add second-way interaction
-  populationNew <- rbind(populationNew, cbind(popDT.2, popDT.1))
+  tmp.2 <- cbind(popDT.2, popDT.1)
+  tmp.2[, exposure := exp.levels]
 
-  # add exposure entry to data.table
-  # exposure will be recycled correctly
-  populationNew[, exposure := exp.levels]
-  
+  # interleave two data.tables in one
+  populationNew <- interleave(tmp.1, tmp.2)
+
   # add probability
   populationNew[, probability := as.numeric(diag(sapply(populationNew$rec.healthstatus, readMatrix,
                                                         expHS = populationNew$exp.healthstatus,
