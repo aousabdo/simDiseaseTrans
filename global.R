@@ -80,8 +80,8 @@ simDiseaseTrans2 <- function(recVec, expVec, exposure, probMatrix){
   
   # add exposer's ID and healthstatus level. Also add exposure level and probability omega
   recVec[, c("exposer.id", "exposer.HS", "expLevel", "probability", "changed") := 
-           list(expVec[, id], expVec[, healthstatus], exposure, omega, "No")]
-
+            list(expVec[, id], expVec[, healthstatus], exposure, omega, "No")]
+  
   # if omega is larger than a randomly selected number between 1 and a 100 then
   # the recipient will advance to the next level of health status (become sicker)
   # if not then the recipient stays at the same health status level
@@ -159,33 +159,58 @@ simPop <- function(N = 100){
 
 
 # -------------------------------------------------------------------------------------#
-simInteraction <- function(popDT, exp.levels = NULL, probMatrix = NULL){
+simInteraction <- function(population, exp.levels = NULL, probMatrix = NULL){
   # function to simulate the interaction between personas in a population popDT
   # split given population in halves
-  popDT.1 <- popDT[1:(nrow(popDT)/2)] # this will be the recipients data.table
-  popDT.2 <- popDT[(nrow(popDT)/2+1):nrow(popDT)] # this will be the exposers data.tables
+  popDT.1 <- population[1:(nrow(population)/2)] # this will be the recipients data.table
+  popDT.2 <- population[(nrow(population)/2+1):nrow(population)] # this will be the exposers data.tables
   
   # change names of recipient and exposers columns
   setnames(popDT.1, paste('rec', names(popDT.1), sep = "."))
   setnames(popDT.2, paste('exp', names(popDT.2), sep = "."))
   
   # bind two data.table in one.
-  popInteraction <- cbind(popDT.1, popDT.2)
-  
-  if(is.null(exp.levels)){
-    # obtain distribution of exposure levels
-    exp.levels <- expLevels(30, 30, 40, nrow(popDT)/2)
-  }
+  populationNew <- cbind(popDT.1, popDT.2)
   
   # add exposure entry to data.table
-  popInteraction[, exposure := exp.levels]
+  populationNew[, exposure := exp.levels]
   
-  popInteraction[, rec.HS.PostExp := diag(sapply(popInteraction$rec.healthstatus, readMatrix,
-                                                 expHS = popInteraction$exp.healthstatus,
-                                                 exposure = popInteraction$exposure, probMatrix= probMatrix))]
-  return(popInteraction)
+  # add probability
+  populationNew[, probability := as.numeric(diag(sapply(populationNew$rec.healthstatus, readMatrix,
+                                                        expHS = populationNew$exp.healthstatus,
+                                                        exposure = populationNew$exposure, 
+                                                        probMatrix= probMatrix)))]
+  
+  populationNew[rec.healthstatus == 6, probability := 0]
+  
+  return(populationNew)
 }
 # -------------------------------------------------------------------------------------#
+
+modifiers <- function(population){
+  # make sure you use copy since othewise parent 
+  # data.table get affected when it's copy is altered
+  population.tmp <- copy(population) 
+  
+  # add weight for home state google flue trend 
+  population.tmp[rec.homestate == "High", probability := probability + 4]
+  population.tmp[rec.homestate == "Moderate", probability := probability + 2]
+  
+  # add weight for age    
+  population.tmp[rec.age <= 20 | rec.age >=60, probability := probability + 4]
+  
+  # now add the weight for comorbidity if it exists
+  population.tmp[rec.hascomorbidity == 1, 
+                 probability := probability + comorbidityweightDT[comorbidity == as.character(population.tmp[, rec.comorbidity]), weights]
+                 ]
+  
+  # cap probability at a 100. This might happen since we are adding lots of probabilities
+  population.tmp[probability > 100, probability := 100]
+  
+  population.tmp[rec.healthstatus == 6, probability := 0]
+  
+  return(population.tmp)
+}
 
 # -------------------------------------------------------------------------------------#
 # function to read 
@@ -221,6 +246,12 @@ comorbidity <- function(hasComorbidity){
 comorbidityWeight <- list("Diabetes" = 1, "CHF" = 1, "COPD" = 2, "Immunosuppressed" = 4, 
                           "Cancer" = 4,  "Renal" = 4, "Transplant" = 5, "Cystic Fibrosis" = 4)
 
+comorbidityweightDT <- data.table(comorbidity = c("Diabetes" , "CHF" , "COPD" , 
+                                                  "Immunosuppressed", 
+                                                  "Cancer",  "Renal", 
+                                                  "Transplant", "Cystic Fibrosis"), 
+                                  weights = c(1, 1, 2, rep(4,3), 5, 4))
+setkey(comorbidityweightDT, comorbidity)
 # -------------------------------------------------------------------------------------#
 
 # -------------------------------------------------------------------------------------#
@@ -246,20 +277,20 @@ googleFlu <- function(googleFluFileLink = "https://www.google.org/flutrends/us/d
   
   # fread will take care of the few, 11 lines, of text and will only read the data columns
   flu <- fread("./googleFluFile.txt")
-
+  
   # keep only data for the last week (last row), also get rid of some columns that we don't need
   flu <- flu[ nrow(flu), -c(1:2, 54:ncol(flu)), with = FALSE]
   
   # also get rid of Hawaii and Alaska since R can't plot them
   flu[,c("Alaska", "Hawaii") := list(NULL, NULL)]
-
+  
   # convert to long format
   flu <- melt(flu, variable.name = "state", value.name = "count")
   
   # let's add a categorical variable based on the counts
   flu[, fluLevel := as.factor(cut2(count, g = 3))]
   levels(flu$fluLevel) <- c("Low", "Moderate", "High")
-
+  
   
   # set data.table key to count to sort the data.table by flu counts
   setkey(flu, count)
@@ -292,7 +323,7 @@ fluMap <- function(fluData, popDT){
   
   # set key for merge
   setkey(states_map, state)
-    
+  
   flu_map <- merge(states_map, fluData)
   
   p1 <- ggplot(flu_map, aes(x = long, y = lat, group = group, fill = count)) + geom_polygon(col="black") 
@@ -303,10 +334,10 @@ fluMap <- function(fluData, popDT){
   p1 <- p1 + annotate("text", x = -95, y = 25, size = 4, colour = "blue", 
                       label = "Data Source: Google Flu Trends (http://www.google.org/flutrends)")
   p1 <- p1 + theme(axis.text.x = element_text(colour = "white"),
-                 axis.title.x = element_text(colour="white"),
-                 axis.text.y = element_text(colour = "white"),
-                 axis.title.y = element_text(colour="white"),
-                 plot.title = element_text(size = 20, colour = "blue", face = "bold"))
+                   axis.title.x = element_text(colour="white"),
+                   axis.text.y = element_text(colour = "white"),
+                   axis.title.y = element_text(colour="white"),
+                   plot.title = element_text(size = 20, colour = "blue", face = "bold"))
   
   # now build the population map
   popDT[, state := tolower(state)]
@@ -323,7 +354,7 @@ fluMap <- function(fluData, popDT){
   
   # reset NAs to zeros for missing states
   set(persona_map, which(is.na(persona_map[[7]])), j = 7, value = 0)
-
+  
   p2 <- ggplot(persona_map, aes(x = long, y = lat, group = group, fill = personas.from.state)) + geom_polygon(col="black") 
   p2 <- p2 + theme_bw() + theme(legend.position = "bottom", line = element_blank()) + coord_map("polyconic") 
   p2 <- p2 + scale_fill_gradient(name = "Number of Participants\t", low="white", high="red") + commonTheme

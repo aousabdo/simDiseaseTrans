@@ -112,7 +112,7 @@ shinyServer(function(input, output) {
     N <- input$N
     
     # simulate the population
-    popDT <- isolate(simPop(N = N))
+    popDT <- simPop(N = N)
     
     # split it in two halves
     popDT.1 <- popDT[1:(nrow(popDT)/2)]
@@ -147,6 +147,32 @@ shinyServer(function(input, output) {
     simDT$homestate <- reorder(simDT$homestate, new.order= c("Low", "Moderate", "High"))
     
     return(simDT)
+  })
+  
+  dataTable3 <- reactive({
+    # Update only when update button is clicked 
+    input$goButton
+    
+    # number of personas to simulate
+    N <- input$N
+    
+    # simulate the population
+    popDT <- simPop(N = N)
+    
+    # exposure levels
+    exp.level.minor    <- input$exp.level.minor
+    exp.level.moderate <- input$exp.level.moderate
+    exp.level.high     <- input$exp.level.high
+    
+    # obtain distribution of exposure levels
+    exp.levels <- expLevels(30, 30, 40, N/2)
+    exp.levels <- expLevels(exp.level.minor, exp.level.moderate, exp.level.high, N/2)
+    
+    transProbMatrix <- isolate(Matrix())
+    
+    simDT <- simInteraction( population = popDT, exp.levels = exp.levels, probMatrix = transProbMatrix)
+    simModifiers <- modifiers(simDT)
+    return(simModifiers)
   })
   
   output$distsPlot2 <- renderPlot({
@@ -343,6 +369,11 @@ shinyServer(function(input, output) {
                                     #"Recipient Has Morbiditiy", 
                                     "Recipient Morbidity", "Exposer ID", "Exposer Health Status", 
                                     "Exposure Level", "Probability", "Changed", "Recipient Post-Exposure HS"))
+  })
+  
+  output$dataTable3 <- renderDataTable({
+    input$goButton
+    simDT <- isolate(dataTable3())
   })
   
   output$transMatrix <- renderTable({
