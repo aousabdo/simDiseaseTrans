@@ -1,3 +1,8 @@
+library(data.table)
+library(reshape2)
+library(Hmisc)
+
+options(warn = -1)
 googleFlu <- function(googleFluFileLink = "https://www.google.org/flutrends/us/data.txt", update = TRUE){
   # googleFluFileLink is a pointer to the google flu trend text file
   # this function downloads the latest text file, gets values for the last week of data, 
@@ -8,7 +13,6 @@ googleFlu <- function(googleFluFileLink = "https://www.google.org/flutrends/us/d
   # flu = googleFlu(update = FASLSE)
 
 
-  
   # if file exists and if update is false then don't redownload file
   if(file.exists("./googleFluFile.txt")){
     if(update){
@@ -30,7 +34,7 @@ googleFlu <- function(googleFluFileLink = "https://www.google.org/flutrends/us/d
   flu <- flu[ nrow(flu), -c(2, 54:ncol(flu)), with = FALSE]
   
   # also get rid of Hawaii and Alaska since R can't plot them
-  # flu[,c("Alaska", "Hawaii") := list(NULL, NULL)]
+  flu[,c("Alaska", "Hawaii") := list(NULL, NULL)]
   
   # convert to long format
   flu <- melt(flu, variable.name = "state", value.name = "count")
