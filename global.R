@@ -159,7 +159,7 @@ simPop <- function(N = 100){
 
 
 # -------------------------------------------------------------------------------------#
-simInteraction <- function(population, exp.levels = NULL, probMatrix = NULL){
+simInteraction <- function(population, exp.levels = NULL, probMatrix = NULL, Modifiers = TRUE){
   # function to simulate the interaction between personas in a population popDT
   # split given population in halves
   popDT.1 <- population[1:(nrow(population)/2)] # this will be the recipients data.table
@@ -184,17 +184,34 @@ simInteraction <- function(population, exp.levels = NULL, probMatrix = NULL){
   tmp.2[, exposure := exp.levels]
 
   # interleave two data.tables in one
-  populationNew <- interleave(tmp.1, tmp.2)
+  pop.tmp <- interleave(tmp.1, tmp.2)
 
   # add probability
-  populationNew[, probability := as.numeric(diag(sapply(populationNew$rec.healthstatus, readMatrix,
-                                                        expHS = populationNew$exp.healthstatus,
-                                                        exposure = populationNew$exposure, 
+  pop.tmp[, probability := as.numeric(diag(sapply(pop.tmp$rec.healthstatus, readMatrix,
+                                                        expHS = pop.tmp$exp.healthstatus,
+                                                        exposure = pop.tmp$exposure, 
                                                         probMatrix= probMatrix)))]
   
-  populationNew[rec.healthstatus == 6, probability := 0]
+  pop.tmp[rec.healthstatus == 6, probability := 0]
   
-  return(populationNew)
+  result <- copy(pop.tmp)
+  
+  if(Modifiers){
+    result <- modifiers(pop.tmp)
+  }
+  
+  result[, c("changed", "rec.HS.PostExp") := list("No", rec.healthstatus)]
+  result[sample(1:100, nrow(result), replace = TRUE) <= probability, 
+         c("changed","rec.HS.PostExp") := list("Yes", rec.healthstatus + 1)]
+  
+  factors <- c("rec.homestate", "rec.comorbidity", "exp.comorbidity", "exposure", "changed")
+  
+  result[, (factors):=lapply(.SD, as.factor), .SDcols=factors]
+  
+  levels(result$exposure) <- c("Minor", "Moderate", "High")
+  result$rec.homestate <- reorder(result$rec.homestate, new.order= c("Low", "Moderate", "High"))
+  
+  return(result)
 }
 # -------------------------------------------------------------------------------------#
 
@@ -220,9 +237,6 @@ modifiers <- function(population){
   
   # HS 6 probability is zero
   population.tmp[rec.healthstatus == 6, probability := 0]
-  
-  # clean data.table since we don't need all columns at this stage
-  population.tmp[, c("rec.hascomorbidity", "exp.hascomorbidity", "exp.age", "exp.homestate", "exp.state", "exp.comorbidity") := NULL]
   
   return(population.tmp)
 }
